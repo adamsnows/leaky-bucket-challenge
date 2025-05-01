@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { loginUser } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
-import TokenDisplay from "./token-display";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import {
   Card,
   CardContent,
@@ -15,24 +15,34 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Alert, AlertDescription } from "./ui/alert";
 import Link from "next/link";
+import { registerUser } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import TokenDisplay from "./token-display";
 
-interface LoginFormProps {
-  onSuccess: () => void;
+interface RegisterFormProps {
+  onSuccess?: () => void;
 }
 
-const loginSchema = z.object({
-  email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
-  password: z.string().min(1, "Senha é obrigatória"),
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(1, "Nome é obrigatório"),
+    email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
+    password: z
+      .string()
+      .min(6, "Senha deve ter pelo menos 6 caracteres")
+      .min(1, "Senha é obrigatória"),
+    confirmPassword: z.string().min(1, "Confirme sua senha"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function LoginForm({ onSuccess }: LoginFormProps) {
+export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
@@ -43,37 +53,47 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
+      name: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: RegisterFormData) => {
     setLoading(true);
     setError(null);
     setRateLimited(false);
     setFormSubmitted(true);
 
     try {
-      const response = await loginUser({
-        email: data.email,
-        password: data.password,
+      const { confirmPassword, ...formData } = data;
+
+      const response = await registerUser({
+        username: formData.name,
+        email: formData.email,
+        password: formData.password,
       });
 
       localStorage.setItem("authToken", response.token);
       localStorage.setItem("authUser", JSON.stringify(response.user));
 
       toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta.",
+        title: "Cadastro realizado com sucesso!",
+        description: "Você já pode acessar a plataforma.",
         variant: "default",
       });
 
-      onSuccess();
+      reset();
+
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err: any) {
       if (err.response?.status === 429) {
         const retry =
@@ -90,17 +110,20 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         const errorMessage =
           err instanceof Error
             ? err.message
-            : "Ocorreu um erro durante o login";
+            : "Ocorreu um erro durante o cadastro";
+
         setError(errorMessage);
       }
 
       toast({
-        title: rateLimited ? "Limite de tentativas excedido" : "Erro no login",
+        title: rateLimited
+          ? "Limite de tentativas excedido"
+          : "Erro no cadastro",
         description: rateLimited
-          ? "Aguarde um momento antes de tentar novamente."
+          ? `Aguarde um momento antes de tentar novamente.`
           : err instanceof Error
           ? err.message
-          : "Ocorreu um erro durante o login",
+          : "Ocorreu um erro durante o cadastro",
         variant: "destructive",
       });
     } finally {
@@ -135,9 +158,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     <>
       <Card className="w-full max-w-xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Entrar</CardTitle>
+          <CardTitle className="text-2xl font-bold">Cadastre-se</CardTitle>
           <CardDescription>
-            Acesse sua conta para usar a plataforma
+            Crie sua conta para acessar a plataforma
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -147,6 +170,21 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome completo</Label>
+              <Input
+                id="name"
+                type="text"
+                {...register("name")}
+                placeholder="Digite seu nome completo"
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -169,11 +207,26 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                 id="password"
                 type="password"
                 {...register("password")}
-                placeholder="Digite sua senha"
+                placeholder="Crie uma senha segura"
               />
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.password.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                {...register("confirmPassword")}
+                placeholder="Digite novamente sua senha"
+              />
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.confirmPassword.message}
                 </p>
               )}
             </div>
@@ -183,18 +236,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               disabled={loading || rateLimited}
               className="w-full"
             >
-              {loading ? "Entrando..." : rateLimited ? "Aguarde..." : "Entrar"}
+              {loading
+                ? "Cadastrando..."
+                : rateLimited
+                ? "Aguarde..."
+                : "Cadastrar"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-center">
-            Não tem uma conta?{" "}
-            <Link
-              href="/register"
-              className="text-primary font-medium hover:underline"
-            >
-              Registre-se
+            Já tem uma conta?{" "}
+            <Link href="/" className="text-primary font-medium hover:underline">
+              Faça login
             </Link>
           </p>
         </CardFooter>

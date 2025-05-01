@@ -1,27 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Progress } from "@/components/ui/progress";
 import { fetchTokenStatus } from "@/lib/api";
+import { Info, AlertTriangle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Interface para status de tokens
 interface TokenStatus {
   availableTokens: number;
   maxTokens: number;
 }
 
-export default function TokenDisplay() {
-  // Estado com tipagem para tokens
+interface TokenDisplayProps {
+  onRateLimited?: (retryAfter: number) => void;
+  isRateLimited?: boolean;
+  retryAfter?: number;
+}
+
+export default function TokenDisplay({
+  onRateLimited,
+  isRateLimited = false,
+  retryAfter = 0,
+}: TokenDisplayProps) {
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const prevTokensRef = useRef<number | null>(null);
+  const [isIncreasing, setIsIncreasing] = useState<boolean | null>(null);
+  const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
 
-  useEffect(() => {
-    const getTokenStatus = async (): Promise<void> => {
-      if (!isAuthenticated) {
-        setTokenStatus(null);
+  const updateTokenStatus = useCallback(
+    async (force = false): Promise<void> => {
+      const now = Date.now();
+      if (!force && now - lastUpdateTimeRef.current < 10000) {
         return;
       }
 
@@ -29,68 +43,176 @@ export default function TokenDisplay() {
       setError(null);
 
       try {
-        const status: TokenStatus = await fetchTokenStatus(token);
+        console.log("[TokenDisplay] Fetching token status...");
+        const status: TokenStatus = await fetchTokenStatus();
+        console.log("[TokenDisplay] Token status response:", status);
+
+        if (
+          prevTokensRef.current !== null &&
+          prevTokensRef.current !== status.availableTokens
+        ) {
+          console.log(
+            `[TokenDisplay] Tokens changed: ${prevTokensRef.current} -> ${status.availableTokens}`
+          );
+          setIsIncreasing(status.availableTokens > prevTokensRef.current);
+          prevTokensRef.current = status.availableTokens;
+          lastUpdateTimeRef.current = now;
+        } else if (prevTokensRef.current === null) {
+          console.log(
+            `[TokenDisplay] Initial tokens: ${status.availableTokens}`
+          );
+          prevTokensRef.current = status.availableTokens;
+          lastUpdateTimeRef.current = now;
+        } else {
+          console.log(
+            `[TokenDisplay] No change in token count: ${status.availableTokens}`
+          );
+        }
+
         setTokenStatus(status);
       } catch (err: unknown) {
-        setError("Não foi possível carregar o status dos tokens");
+        console.error("[TokenDisplay] Error fetching token status:", err);
+        if (err?.toString().includes("429")) {
+          setError("Limite de requisições atingido");
+          if (onRateLimited) {
+            const retryAfterTime =
+              typeof err === "object" &&
+              err !== null &&
+              "response" in err &&
+              typeof (err as any).response === "object"
+                ? (err as any).response?.headers?.["x-ratelimit-reset"] ||
+                  (err as any).response?.data?.retryAfter ||
+                  30
+                : 30;
+            onRateLimited(parseInt(retryAfterTime));
+          }
+        } else {
+          setError("Não foi possível carregar o status dos tokens");
+        }
         console.error(err);
       } finally {
         setIsLoading(false);
       }
+    },
+    [onRateLimited]
+  );
+
+  useEffect(() => {
+    updateTokenStatus(true);
+
+    const intervalId = setInterval(() => {
+      updateTokenStatus();
+    }, 10000);
+
+    return () => {
+      clearInterval(intervalId);
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current);
+      }
     };
+  }, [updateTokenStatus, isRateLimited]);
 
-    getTokenStatus();
+  useEffect(() => {
+    if (isRateLimited) {
+      if (updateTimerRef.current) {
+        clearTimeout(updateTimerRef.current);
+      }
+      updateTimerRef.current = setTimeout(() => {
+        updateTokenStatus(true);
+      }, 2000);
+    } else {
+      updateTokenStatus(true);
+    }
+  }, [isRateLimited, updateTokenStatus]);
 
-    // Refresh token status every 30 seconds
-    const intervalId = setInterval(getTokenStatus, 30000);
-
-    return () => clearInterval(intervalId);
-  }, [isAuthenticated, token]);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="text-center py-4 text-gray-500">
-        Faça login para ver seu status de tokens
-      </div>
-    );
-  }
-
-  if (isLoading && tokenStatus === null) {
-    return (
-      <div className="text-center py-4">
-        <div className="animate-pulse h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-        <div className="animate-pulse h-8 bg-gray-200 rounded w-full mx-auto"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-center py-4 text-red-500">{error}</div>;
-  }
-
-  // Valores seguros com fallback para zero
-  const availableTokens = tokenStatus?.availableTokens ?? 0;
+  const availableTokens = isRateLimited ? 0 : tokenStatus?.availableTokens ?? 0;
   const maxTokens = tokenStatus?.maxTokens ?? 10;
   const progressPercentage = (availableTokens / maxTokens) * 100;
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <span className="text-sm font-medium">Tokens disponíveis:</span>
-        <span className="text-lg font-bold">
-          {availableTokens} / {maxTokens}
-        </span>
+    <div className="mt-8 p-4 border rounded-md bg-background shadow-sm max-w-xl mx-auto w-full">
+      <div className="flex items-center gap-2 mb-2">
+        {isRateLimited ? (
+          <AlertTriangle className="h-5 w-5 text-destructive" />
+        ) : (
+          <Info className="h-5 w-5 text-primary" />
+        )}
+        <h3 className="font-medium">Status de limite de requisições</h3>
       </div>
 
-      <Progress value={progressPercentage} className="h-2" />
+      {isLoading && tokenStatus === null ? (
+        <div className="space-y-2">
+          <div className="animate-pulse h-4 bg-muted rounded w-3/4"></div>
+          <div className="animate-pulse h-6 bg-muted rounded w-full"></div>
+        </div>
+      ) : (
+        <>
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm">Tokens disponíveis:</span>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={availableTokens}
+                initial={{ opacity: 0, y: isIncreasing ? 20 : -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className={`text-xl font-bold ${
+                  availableTokens < 2
+                    ? "text-destructive"
+                    : availableTokens < maxTokens / 2
+                    ? "text-amber-500"
+                    : "text-green-500"
+                }`}
+              >
+                {availableTokens} / {maxTokens}
+              </motion.span>
+            </AnimatePresence>
+          </div>
 
-      <div className="text-xs text-gray-500 mt-2">
-        <p>
-          Cada requisição consome 1 token. Tokens são recarregados à taxa de 1
-          por hora.
-        </p>
-        <p>Máximo de {maxTokens} tokens por usuário.</p>
-      </div>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <Progress
+              value={progressPercentage}
+              className={`h-2.5 ${
+                availableTokens < 2
+                  ? "bg-red-200"
+                  : availableTokens < maxTokens / 2
+                  ? "bg-amber-200"
+                  : "bg-green-200"
+              }`}
+            />
+          </motion.div>
+
+          {isRateLimited && retryAfter > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-2 p-2 bg-destructive/10 rounded text-sm text-destructive font-medium"
+            >
+              Limite atingido! Tokens serão recuperados em aproximadamente{" "}
+              {retryAfter} segundos.
+            </motion.div>
+          )}
+
+          <div className="text-xs text-muted-foreground mt-3 space-y-1">
+            <p>• Cada requisição consome 1 token</p>
+            <p>• Os tokens são recarregados gradualmente com o tempo</p>
+            <p>
+              • Se todos os tokens forem consumidos, você receberá um erro 429
+              (Rate Limit)
+            </p>
+          </div>
+        </>
+      )}
+
+      {error && !isRateLimited && (
+        <div className="mt-2 p-2 bg-destructive/10 rounded text-sm text-destructive">
+          {error}
+        </div>
+      )}
     </div>
   );
 }

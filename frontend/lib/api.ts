@@ -1,125 +1,189 @@
-// GraphQL client setup
-import { GraphQLClient } from "graphql-request";
-import { gql } from "graphql-request";
+import api from "./axios";
 
-// This would be your actual API URL in production
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
-
-// Create a GraphQL client
-const createClient = (token?: string) => {
-  return new GraphQLClient(API_URL, {
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : {},
-  });
-};
-
-// Interface for Pix transaction input
 interface PixTransactionInput {
   pixKeyType: string;
   pixKey: string;
   amount: number;
-  token: string;
+  token?: string;
 }
 
-// Interface for token status response
 interface TokenStatusResponse {
   availableTokens: number;
   maxTokens: number;
 }
 
-// Interface for Pix transaction response
 interface PixTransactionResponse {
   success: boolean;
   message: string;
   transactionId?: string;
 }
 
-// Interface para GraphQL responses
-interface GraphQLPixTransactionResponse {
-  initiatePixTransaction: PixTransactionResponse;
+interface RegisterInput {
+  username: string;
+  email: string;
+  password: string;
 }
 
-interface GraphQLTokenStatusResponse {
-  tokenStatus: TokenStatusResponse;
+interface RegisterResponse {
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+  };
 }
 
-// GraphQL mutation for initiating a Pix transaction
-const INITIATE_PIX_TRANSACTION = gql`
-  mutation InitiatePixTransaction($input: PixTransactionInput!) {
-    initiatePixTransaction(input: $input) {
-      success
-      message
-      transactionId
-    }
-  }
-`;
+interface LoginInput {
+  email: string;
+  password: string;
+}
 
-// GraphQL query for fetching token status
-const GET_TOKEN_STATUS = gql`
-  query GetTokenStatus {
-    tokenStatus {
-      availableTokens
-      maxTokens
-    }
-  }
-`;
+interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+  };
+}
 
-// Function to initiate a Pix transaction
+async function executeGraphQL<T>(
+  query: string,
+  variables: Record<string, any> = {}
+): Promise<T> {
+  try {
+    const { data } = await api.post("", {
+      query,
+      variables,
+    });
+
+    if (data.errors) {
+      throw new Error(data.errors[0].message || "Erro na requisição GraphQL");
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error("GraphQL request error:", error);
+    throw error;
+  }
+}
+
+const QUERIES = {
+  GET_TOKEN_STATUS: `
+    query GetTokenStatus {
+      tokenStatus {
+        availableTokens
+        maxTokens
+      }
+    }
+  `,
+};
+
+const MUTATIONS = {
+  REGISTER_USER: `
+    mutation RegisterUser($username: String!, $email: String!, $password: String!) {
+      register(username: $username, email: $email, password: $password) {
+        token
+        user {
+          id
+          username
+          email
+        }
+      }
+    }
+  `,
+
+  LOGIN_USER: `
+    mutation LoginUser($email: String!, $password: String!) {
+      login(email: $email, password: $password) {
+        token
+        user {
+          id
+          username
+          email
+        }
+      }
+    }
+  `,
+
+  INITIATE_PIX_TRANSACTION: `
+    mutation InitiatePixTransaction($input: PixTransactionInput!) {
+      initiatePixTransaction(input: $input) {
+        success
+        message
+        transactionId
+      }
+    }
+  `,
+};
+
+export async function registerUser(
+  data: RegisterInput
+): Promise<RegisterResponse> {
+  try {
+    const response = await executeGraphQL<{ register: RegisterResponse }>(
+      MUTATIONS.REGISTER_USER,
+      {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+      }
+    );
+
+    return response.register;
+  } catch (error) {
+    console.error("Error registering user:", error);
+    throw error;
+  }
+}
+
+export async function loginUser(data: LoginInput): Promise<LoginResponse> {
+  try {
+    const response = await executeGraphQL<{ login: LoginResponse }>(
+      MUTATIONS.LOGIN_USER,
+      {
+        email: data.email,
+        password: data.password,
+      }
+    );
+
+    return response.login;
+  } catch (error) {
+    console.error("Error logging in:", error);
+    throw error;
+  }
+}
+
 export async function initiatePixTransaction(
   data: PixTransactionInput
 ): Promise<PixTransactionResponse> {
   try {
-    const client = createClient(data.token);
-
-    // Real API call
     const input = {
       pixKeyType: data.pixKeyType,
       pixKey: data.pixKey,
       amount: data.amount,
     };
 
-    const response = await client.request<GraphQLPixTransactionResponse>(
-      INITIATE_PIX_TRANSACTION,
-      {
-        input,
-      }
-    );
+    const response = await executeGraphQL<{
+      initiatePixTransaction: PixTransactionResponse;
+    }>(MUTATIONS.INITIATE_PIX_TRANSACTION, { input });
 
     return response.initiatePixTransaction;
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error initiating Pix transaction:", error);
-
-    // Handle rate limiting errors specifically
-    if (error instanceof Error && error.message.includes("rate limit")) {
-      throw new Error(
-        "Você atingiu o limite de requisições. Tente novamente mais tarde."
-      );
-    }
-
-    throw new Error(
-      "Falha ao iniciar a transação Pix. Tente novamente mais tarde."
-    );
+    throw error;
   }
 }
 
-// Function to fetch token status
-export async function fetchTokenStatus(
-  token: string
-): Promise<TokenStatusResponse> {
+export async function fetchTokenStatus(): Promise<TokenStatusResponse> {
   try {
-    const client = createClient(token);
-
-    // Real API call
-    const response = await client.request<GraphQLTokenStatusResponse>(
-      GET_TOKEN_STATUS
+    const response = await executeGraphQL<{ tokenStatus: TokenStatusResponse }>(
+      QUERIES.GET_TOKEN_STATUS
     );
+
     return response.tokenStatus;
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching token status:", error);
-    throw new Error("Falha ao buscar o status dos tokens.");
+    throw error;
   }
 }

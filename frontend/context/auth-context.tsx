@@ -7,21 +7,19 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useToast } from "@/hooks/use-toast";
 
-// Interface para representar um usuário autenticado
 interface User {
   id: string;
   username: string;
   email: string;
 }
 
-// Interface para resposta da API de autenticação
 interface AuthResponse {
   token: string;
   user: User;
 }
 
-// Interface para o contexto de autenticação
 interface AuthContextType {
   isAuthenticated: boolean;
   token: string;
@@ -30,15 +28,14 @@ interface AuthContextType {
   logout: () => void;
 }
 
-// Valor padrão para o contexto (usado apenas para tipagem)
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string>("");
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const { toast } = useToast();
 
-  // Check for saved token on mount
   useEffect(() => {
     const savedToken = localStorage.getItem("authToken");
     const savedUser = localStorage.getItem("authUser");
@@ -59,15 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string): Promise<void> => {
     if (!username || !password) {
-      throw new Error("Nome de usuário e senha são obrigatórios");
+      toast({
+        title: "Erro de validação",
+        description: "Nome de usuário e senha são obrigatórios",
+        variant: "destructive",
+      });
+      return;
     }
 
     try {
-      // In a real app, this would be an API call to your backend
-      // For this example, we'll simulate a successful login
       const response = await simulateLoginApi(username, password);
 
-      // Save token and user to localStorage and state
       localStorage.setItem("authToken", response.token);
       localStorage.setItem("authUser", JSON.stringify(response.user));
 
@@ -75,7 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.user);
       setIsAuthenticated(true);
     } catch (error) {
-      throw new Error("Falha na autenticação. Verifique suas credenciais.");
+      toast({
+        title: "Falha na autenticação",
+        description: "Verifique suas credenciais e tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -88,15 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
-  // Simulate API call for login
   const simulateLoginApi = async (
     username: string,
     password: string
   ): Promise<AuthResponse> => {
-    // This is just a simulation - in a real app, this would be a fetch to your backend
     return new Promise<AuthResponse>((resolve, reject) => {
       setTimeout(() => {
-        // Simple validation
         if (username.length > 0 && password.length > 0) {
           resolve({
             token: `simulated-jwt-token-${Math.random()
