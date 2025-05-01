@@ -40,7 +40,6 @@ interface PixTransactionFormProps {
   onComplete: () => void;
 }
 
-// Define o schema de validação com Zod
 const pixTransactionSchema = z.object({
   pixKeyType: z.enum(["cpf", "cnpj", "email", "phone", "random"], {
     required_error: "Selecione um tipo de chave",
@@ -97,70 +96,60 @@ export default function PixTransactionForm({
     setRateLimited(false);
     setFormSubmitted(true);
 
-    try {
-      const amountValue = Number.parseFloat(data.amount.replace(",", "."));
+    const amountValue = Number.parseFloat(data.amount.replace(",", "."));
 
-      const result: TransactionResult = await initiatePixTransaction({
-        pixKeyType: data.pixKeyType,
-        pixKey: data.pixKey,
-        amount: amountValue,
-      });
+    const response = await initiatePixTransaction({
+      pixKeyType: data.pixKeyType,
+      pixKey: data.pixKey,
+      amount: amountValue,
+    });
 
+    if (!response.success) {
+      if (response.error?.includes("429")) {
+        const retryMatch = response.error.match(/retry after (\d+)/i);
+        const retry = retryMatch ? parseInt(retryMatch[1], 10) : 30;
+
+        setRateLimited(true);
+        setRetryAfter(retry);
+        setError(
+          `Limite de tentativas excedido. Tente novamente em ${retry} segundos.`
+        );
+
+        toast({
+          title: "Limite de tentativas excedido",
+          description: "Aguarde um momento antes de tentar novamente.",
+          variant: "destructive",
+        });
+      } else {
+        setError(response.error || "Ocorreu um erro ao iniciar a transação");
+
+        toast({
+          title: "Erro na transação",
+          description:
+            response.error || "Ocorreu um erro ao iniciar a transação",
+          variant: "destructive",
+        });
+      }
+    } else if (response.data) {
       toast({
         title: "Transação iniciada com sucesso",
         description: `Transação Pix de R$ ${amountValue.toFixed(2)} iniciada`,
       });
 
       onComplete();
-    } catch (err: any) {
-      // Verificar se é um erro de limite de taxa (leaky bucket)
-      if (err.response?.status === 429) {
-        const retry =
-          err.response.headers["x-ratelimit-reset"] ||
-          err.response.data?.retryAfter ||
-          30;
-
-        setRateLimited(true);
-        setRetryAfter(parseInt(retry));
-        setError(
-          `Limite de tentativas excedido. Tente novamente em ${retry} segundos.`
-        );
-      } else {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Ocorreu um erro ao iniciar a transação";
-
-        setError(errorMessage);
-      }
-
-      toast({
-        title: rateLimited
-          ? "Limite de tentativas excedido"
-          : "Erro na transação",
-        description: rateLimited
-          ? "Aguarde um momento antes de tentar novamente."
-          : err instanceof Error
-          ? err.message
-          : "Ocorreu um erro ao iniciar a transação",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-      // Reseta o status de submissão após 2 segundos para permitir uma nova visualização correta
-      setTimeout(() => {
-        setFormSubmitted(false);
-      }, 2000);
     }
+
+    setIsLoading(false);
+    setTimeout(() => {
+      setFormSubmitted(false);
+    }, 2000);
   };
 
-  // Função para lidar com o evento de rate limited do TokenDisplay
   const handleRateLimited = (seconds: number) => {
     setRateLimited(true);
     setRetryAfter(seconds);
   };
 
-  // Reseta o estado de rate limited quando o tempo expirar
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 

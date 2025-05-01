@@ -48,7 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           setUser(JSON.parse(savedUser));
         } catch (error) {
-          console.error("Erro ao processar dados do usuário:", error);
+          toast({
+            title: "Erro",
+            description: "Erro ao processar dados do usuário: " + error,
+            variant: "destructive",
+          });
         }
       }
     }

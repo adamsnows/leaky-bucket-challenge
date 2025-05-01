@@ -50,7 +50,7 @@ interface LoginResponse {
 async function executeGraphQL<T>(
   query: string,
   variables: Record<string, any> = {}
-): Promise<T> {
+): Promise<{ data: T | null; error: string | null }> {
   try {
     const { data } = await api.post("", {
       query,
@@ -58,13 +58,18 @@ async function executeGraphQL<T>(
     });
 
     if (data.errors) {
-      throw new Error(data.errors[0].message || "Erro na requisição GraphQL");
+      const errorMessage =
+        data.errors[0]?.message || "Erro na requisição GraphQL";
+      return { data: null, error: errorMessage };
     }
 
-    return data.data;
+    return { data: data.data, error: null };
   } catch (error) {
-    console.error("GraphQL request error:", error);
-    throw error;
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Erro desconhecido na requisição";
+    return { data: null, error: errorMessage };
   }
 }
 
@@ -119,71 +124,77 @@ const MUTATIONS = {
 
 export async function registerUser(
   data: RegisterInput
-): Promise<RegisterResponse> {
-  try {
-    const response = await executeGraphQL<{ register: RegisterResponse }>(
-      MUTATIONS.REGISTER_USER,
-      {
-        username: data.username,
-        email: data.email,
-        password: data.password,
-      }
-    );
+): Promise<{ success: boolean; data?: RegisterResponse; error?: string }> {
+  const response = await executeGraphQL<{ register: RegisterResponse }>(
+    MUTATIONS.REGISTER_USER,
+    {
+      username: data.username,
+      email: data.email,
+      password: data.password,
+    }
+  );
 
-    return response.register;
-  } catch (error) {
-    console.error("Error registering user:", error);
-    throw error;
+  if (response.error) {
+    return { success: false, error: response.error };
   }
+
+  return { success: true, data: response.data!.register };
 }
 
-export async function loginUser(data: LoginInput): Promise<LoginResponse> {
-  try {
-    const response = await executeGraphQL<{ login: LoginResponse }>(
-      MUTATIONS.LOGIN_USER,
-      {
-        email: data.email,
-        password: data.password,
-      }
-    );
+export async function loginUser(
+  data: LoginInput
+): Promise<{ success: boolean; data?: LoginResponse; error?: string }> {
+  const response = await executeGraphQL<{ login: LoginResponse }>(
+    MUTATIONS.LOGIN_USER,
+    {
+      email: data.email,
+      password: data.password,
+    }
+  );
 
-    return response.login;
-  } catch (error) {
-    console.error("Error logging in:", error);
-    throw error;
+  if (response.error) {
+    return { success: false, error: response.error };
   }
+
+  return { success: true, data: response.data!.login };
 }
 
 export async function initiatePixTransaction(
   data: PixTransactionInput
-): Promise<PixTransactionResponse> {
-  try {
-    const input = {
-      pixKeyType: data.pixKeyType,
-      pixKey: data.pixKey,
-      amount: data.amount,
-    };
+): Promise<{
+  success: boolean;
+  data?: PixTransactionResponse;
+  error?: string;
+}> {
+  const input = {
+    pixKeyType: data.pixKeyType,
+    pixKey: data.pixKey,
+    amount: data.amount,
+  };
 
-    const response = await executeGraphQL<{
-      initiatePixTransaction: PixTransactionResponse;
-    }>(MUTATIONS.INITIATE_PIX_TRANSACTION, { input });
+  const response = await executeGraphQL<{
+    initiatePixTransaction: PixTransactionResponse;
+  }>(MUTATIONS.INITIATE_PIX_TRANSACTION, { input });
 
-    return response.initiatePixTransaction;
-  } catch (error) {
-    console.error("Error initiating Pix transaction:", error);
-    throw error;
+  if (response.error) {
+    return { success: false, error: response.error };
   }
+
+  return { success: true, data: response.data!.initiatePixTransaction };
 }
 
-export async function fetchTokenStatus(): Promise<TokenStatusResponse> {
-  try {
-    const response = await executeGraphQL<{ tokenStatus: TokenStatusResponse }>(
-      QUERIES.GET_TOKEN_STATUS
-    );
+export async function fetchTokenStatus(): Promise<{
+  success: boolean;
+  data?: TokenStatusResponse;
+  error?: string;
+}> {
+  const response = await executeGraphQL<{ tokenStatus: TokenStatusResponse }>(
+    QUERIES.GET_TOKEN_STATUS
+  );
 
-    return response.tokenStatus;
-  } catch (error) {
-    console.error("Error fetching token status:", error);
-    throw error;
+  if (response.error) {
+    return { success: false, error: response.error };
   }
+
+  return { success: true, data: response.data!.tokenStatus };
 }

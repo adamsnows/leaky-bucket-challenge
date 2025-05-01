@@ -43,53 +43,44 @@ export default function TokenDisplay({
       setError(null);
 
       try {
-        console.log("[TokenDisplay] Fetching token status...");
-        const status: TokenStatus = await fetchTokenStatus();
-        console.log("[TokenDisplay] Token status response:", status);
+        const response = await fetchTokenStatus();
+
+        if (!response.success || !response.data) {
+          if (response.error?.includes("429")) {
+            setError("Limite de requisições atingido");
+            if (onRateLimited) {
+              const retryMatch = response.error.match(/retry after (\d+)/i);
+              const retryAfterTime = retryMatch
+                ? parseInt(retryMatch[1], 10)
+                : 30;
+              onRateLimited(retryAfterTime);
+            }
+          } else {
+            setError(
+              response.error || "Não foi possível carregar o status dos tokens"
+            );
+          }
+          return;
+        }
+
+        const status = response.data;
 
         if (
           prevTokensRef.current !== null &&
           prevTokensRef.current !== status.availableTokens
         ) {
-          console.log(
-            `[TokenDisplay] Tokens changed: ${prevTokensRef.current} -> ${status.availableTokens}`
-          );
           setIsIncreasing(status.availableTokens > prevTokensRef.current);
           prevTokensRef.current = status.availableTokens;
           lastUpdateTimeRef.current = now;
         } else if (prevTokensRef.current === null) {
-          console.log(
-            `[TokenDisplay] Initial tokens: ${status.availableTokens}`
-          );
           prevTokensRef.current = status.availableTokens;
           lastUpdateTimeRef.current = now;
         } else {
-          console.log(
-            `[TokenDisplay] No change in token count: ${status.availableTokens}`
-          );
         }
 
         setTokenStatus(status);
-      } catch (err: unknown) {
-        console.error("[TokenDisplay] Error fetching token status:", err);
-        if (err?.toString().includes("429")) {
-          setError("Limite de requisições atingido");
-          if (onRateLimited) {
-            const retryAfterTime =
-              typeof err === "object" &&
-              err !== null &&
-              "response" in err &&
-              typeof (err as any).response === "object"
-                ? (err as any).response?.headers?.["x-ratelimit-reset"] ||
-                  (err as any).response?.data?.retryAfter ||
-                  30
-                : 30;
-            onRateLimited(parseInt(retryAfterTime));
-          }
-        } else {
-          setError("Não foi possível carregar o status dos tokens");
-        }
-        console.error(err);
+      } catch (err) {
+        setError("Erro inesperado ao carregar o status dos tokens");
       } finally {
         setIsLoading(false);
       }

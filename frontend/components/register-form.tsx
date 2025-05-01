@@ -71,17 +71,42 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     setRateLimited(false);
     setFormSubmitted(true);
 
-    try {
-      const { confirmPassword, ...formData } = data;
+    const { confirmPassword, ...formData } = data;
 
-      const response = await registerUser({
-        username: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
+    const response = await registerUser({
+      username: formData.name,
+      email: formData.email,
+      password: formData.password,
+    });
 
-      localStorage.setItem("authToken", response.token);
-      localStorage.setItem("authUser", JSON.stringify(response.user));
+    if (!response.success) {
+      if (response.error?.includes("429")) {
+        const retryMatch = response.error.match(/retry after (\d+)/i);
+        const retry = retryMatch ? parseInt(retryMatch[1], 10) : 30;
+
+        setRateLimited(true);
+        setRetryAfter(retry);
+        setError(
+          `Limite de tentativas excedido. Tente novamente em ${retry} segundos.`
+        );
+
+        toast({
+          title: "Limite de tentativas excedido",
+          description: "Aguarde um momento antes de tentar novamente.",
+          variant: "destructive",
+        });
+      } else {
+        setError(response.error || "Ocorreu um erro durante o cadastro");
+
+        toast({
+          title: "Erro no cadastro",
+          description: response.error || "Ocorreu um erro durante o cadastro",
+          variant: "destructive",
+        });
+      }
+    } else if (response.data) {
+      localStorage.setItem("authToken", response.data.token);
+      localStorage.setItem("authUser", JSON.stringify(response.data.user));
 
       toast({
         title: "Cadastro realizado com sucesso!",
@@ -94,44 +119,12 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err: any) {
-      if (err.response?.status === 429) {
-        const retry =
-          err.response.headers["x-ratelimit-reset"] ||
-          err.response.data?.retryAfter ||
-          30;
-
-        setRateLimited(true);
-        setRetryAfter(parseInt(retry));
-        setError(
-          `Limite de tentativas excedido. Tente novamente em ${retry} segundos.`
-        );
-      } else {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Ocorreu um erro durante o cadastro";
-
-        setError(errorMessage);
-      }
-
-      toast({
-        title: rateLimited
-          ? "Limite de tentativas excedido"
-          : "Erro no cadastro",
-        description: rateLimited
-          ? `Aguarde um momento antes de tentar novamente.`
-          : err instanceof Error
-          ? err.message
-          : "Ocorreu um erro durante o cadastro",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      setTimeout(() => {
-        setFormSubmitted(false);
-      }, 2000);
     }
+
+    setLoading(false);
+    setTimeout(() => {
+      setFormSubmitted(false);
+    }, 2000);
   };
 
   const handleRateLimited = (seconds: number) => {

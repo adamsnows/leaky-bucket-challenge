@@ -58,14 +58,39 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setRateLimited(false);
     setFormSubmitted(true);
 
-    try {
-      const response = await loginUser({
-        email: data.email,
-        password: data.password,
-      });
+    const response = await loginUser({
+      email: data.email,
+      password: data.password,
+    });
 
-      localStorage.setItem("authToken", response.token);
-      localStorage.setItem("authUser", JSON.stringify(response.user));
+    if (!response.success) {
+      if (response.error?.includes("429")) {
+        const retryMatch = response.error.match(/retry after (\d+)/i);
+        const retry = retryMatch ? parseInt(retryMatch[1], 10) : 30;
+
+        setRateLimited(true);
+        setRetryAfter(retry);
+        setError(
+          `Limite de tentativas excedido. Tente novamente em ${retry} segundos.`
+        );
+
+        toast({
+          title: "Limite de tentativas excedido",
+          description: "Aguarde um momento antes de tentar novamente.",
+          variant: "destructive",
+        });
+      } else {
+        setError(response.error || "Ocorreu um erro durante o login");
+
+        toast({
+          title: "Erro no login",
+          description: response.error || "Ocorreu um erro durante o login",
+          variant: "destructive",
+        });
+      }
+    } else if (response.data) {
+      localStorage.setItem("authToken", response.data.token);
+      localStorage.setItem("authUser", JSON.stringify(response.data.user));
 
       toast({
         title: "Login realizado com sucesso!",
@@ -74,41 +99,12 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       });
 
       onSuccess();
-    } catch (err: any) {
-      if (err.response?.status === 429) {
-        const retry =
-          err.response.headers["x-ratelimit-reset"] ||
-          err.response.data?.retryAfter ||
-          30;
-
-        setRateLimited(true);
-        setRetryAfter(parseInt(retry));
-        setError(
-          `Limite de tentativas excedido. Tente novamente em ${retry} segundos.`
-        );
-      } else {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Ocorreu um erro durante o login";
-        setError(errorMessage);
-      }
-
-      toast({
-        title: rateLimited ? "Limite de tentativas excedido" : "Erro no login",
-        description: rateLimited
-          ? "Aguarde um momento antes de tentar novamente."
-          : err instanceof Error
-          ? err.message
-          : "Ocorreu um erro durante o login",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      setTimeout(() => {
-        setFormSubmitted(false);
-      }, 2000);
     }
+
+    setLoading(false);
+    setTimeout(() => {
+      setFormSubmitted(false);
+    }, 2000);
   };
 
   const handleRateLimited = (seconds: number) => {
