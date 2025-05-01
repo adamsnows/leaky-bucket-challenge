@@ -64,9 +64,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     });
 
     if (!response.success) {
-      if (response.error?.includes("429")) {
-        const retryMatch = response.error.match(/retry after (\d+)/i);
-        const retry = retryMatch ? parseInt(retryMatch[1], 10) : 30;
+      if (response.errorCode === 429) {
+        // Usa retryAfter se disponível, ou um valor padrão de 30 segundos
+        const retry = response.retryAfter || 30;
 
         setRateLimited(true);
         setRetryAfter(retry);

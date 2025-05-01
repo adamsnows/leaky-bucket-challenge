@@ -36,3 +36,4 @@ coverage/
 
 # Jest
 jest-stats.json
+.vercel

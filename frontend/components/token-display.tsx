@@ -26,7 +26,6 @@ export default function TokenDisplay({
   const [tokenStatus, setTokenStatus] = useState<TokenStatus | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
   const prevTokensRef = useRef<number | null>(null);
   const [isIncreasing, setIsIncreasing] = useState<boolean | null>(null);
   const updateTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -192,8 +191,8 @@ export default function TokenDisplay({
             <p>• Cada requisição consome 1 token</p>
             <p>• Os tokens são recarregados gradualmente com o tempo</p>
             <p>
-              • Se todos os tokens forem consumidos, você receberá um erro 429
-              (Rate Limit)
+              • Se todos os tokens forem consumidos, você receberá um mensagem
+              de erro.
             </p>
           </div>
         </>

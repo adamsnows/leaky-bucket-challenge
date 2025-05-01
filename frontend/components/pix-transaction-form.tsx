@@ -96,8 +96,7 @@ export default function PixTransactionForm({
     setRateLimited(false);
     setFormSubmitted(true);
 
-    // Simulação de transação com delay de 500ms
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     const amountValue = Number.parseFloat(data.amount.replace(",", "."));
 
@@ -108,9 +107,9 @@ export default function PixTransactionForm({
     });
 
     if (!response.success) {
-      if (response.error?.includes("429")) {
-        const retryMatch = response.error.match(/retry after (\d+)/i);
-        const retry = retryMatch ? parseInt(retryMatch[1], 10) : 30;
+      if (response.errorCode === 429) {
+        // Usa retryAfter se disponível, ou um valor padrão de 30 segundos
+        const retry = response.retryAfter || 30;
 
         setRateLimited(true);
         setRetryAfter(retry);
