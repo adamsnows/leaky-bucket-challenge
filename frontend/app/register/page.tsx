@@ -84,26 +84,6 @@ export default function RegisterPage() {
               </p>
             </div>
           </motion.div>
-
-          {isRegistered && (
-            <motion.div
-              className="text-center p-4 bg-green-50 rounded-lg"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <motion.div
-                className="text-green-600 text-xl font-semibold"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 0.5, times: [0, 0.5, 1], delay: 0.5 }}
-              >
-                Cadastro realizado com sucesso!
-              </motion.div>
-              <p className="text-green-600 mt-2">
-                Redirecionando para a página de login...
-              </p>
-            </motion.div>
-          )}
         </motion.div>
       </div>
     </motion.main>
