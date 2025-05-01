@@ -266,7 +266,6 @@ export default function PixTransactionForm({
         </CardContent>
       </Card>
 
-      {/* TokenDisplay com key para forçar recriação após submissão do formulário */}
       <TokenDisplay
         isRateLimited={rateLimited}
         retryAfter={retryAfter}
