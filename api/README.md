@@ -161,6 +161,7 @@ JWT_EXPIRES_IN=1d
 3. Observe os headers de resposta `X-RateLimit-*` para ver o consumo de tokens
 4. Após consumir todos os tokens, você receberá um erro 429
 5. Use a query `tokenStatus` para monitorar o estado dos seus tokens
+6. Deixei alguns console.log no servidor para ajudar a visualizar o funcionamento dos tokens em tempo real.
 
 ## 📚 Documentação da API GraphQL
 
