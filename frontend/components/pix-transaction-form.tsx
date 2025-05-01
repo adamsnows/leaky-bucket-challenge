@@ -96,6 +96,9 @@ export default function PixTransactionForm({
     setRateLimited(false);
     setFormSubmitted(true);
 
+    // Simulação de transação com delay de 500ms
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const amountValue = Number.parseFloat(data.amount.replace(",", "."));
 
     const response = await initiatePixTransaction({
