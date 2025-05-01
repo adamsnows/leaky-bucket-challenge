@@ -155,12 +155,10 @@ const resolvers = {
       const user = mockUsers.find((user) => user.email === email);
 
       if (!user) {
-        ctx.status = 401;
         throw new UserInputError("Credenciais inválidas");
       }
 
       if (user.password !== password) {
-        ctx.status = 401;
         throw new AuthenticationError("Credenciais inválidas");
       }
 
