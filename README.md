@@ -1,5 +1,3 @@
-# README de ambos projetos, Frontend e depois Backend
-
 # Leaky Bucket Frontend - Interface para Sistema de Rate Limiting PIX
 
 Esta é a parte frontend do projeto Leaky Bucket, desenvolvida em Next.js para fornecer uma interface amigável para o sistema de rate limiting implementado no backend.
