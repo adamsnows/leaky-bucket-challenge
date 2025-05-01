@@ -218,139 +218,145 @@ export default function Home() {
             custom={direction}
             className="max-w-xl mx-auto"
           >
-            {currentStep === "login" && (
-              <motion.div
-                className="bg-white rounded-xl shadow-md overflow-hidden mb-8"
-                initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
-                whileHover={{ boxShadow: "0 8px 15px rgba(0, 0, 0, 0.1)" }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Login
-                  </h2>
-                  <LoginForm onSuccess={handleLoginSuccess} />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.5 }}
+            >
+              {currentStep === "login" && (
+                <motion.div
+                  className="bg-white rounded-xl shadow-md overflow-hidden mb-8"
+                  initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
+                  whileHover={{ boxShadow: "0 8px 15px rgba(0, 0, 0, 0.1)" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                      Login
+                    </h2>
+                    <LoginForm onSuccess={handleLoginSuccess} />
 
-                  <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
-                      Ainda não tem uma conta?{" "}
-                      <Link
-                        href="/register"
-                        className="text-primary font-medium hover:underline"
-                      >
-                        Cadastre-se
-                      </Link>
-                    </p>
+                    <div className="mt-6 text-center">
+                      <p className="text-sm text-gray-600">
+                        Ainda não tem uma conta?{" "}
+                        <Link
+                          href="/register"
+                          className="text-primary font-medium hover:underline"
+                        >
+                          Cadastre-se
+                        </Link>
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            )}
+                </motion.div>
+              )}
 
-            {currentStep === "transaction" && (
-              <motion.div
-                className="bg-white rounded-xl shadow-md overflow-hidden mb-8"
-                initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
-                whileHover={{ boxShadow: "0 8px 15px rgba(0, 0, 0, 0.1)" }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Iniciar Transação Pix
-                  </h2>
-                  <Suspense
-                    fallback={
-                      <div className="flex justify-center py-4">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 1,
-                            repeat: Infinity,
-                            ease: "linear",
-                          }}
-                          className="w-8 h-8 border-b-2 border-primary rounded-full"
-                        />
-                      </div>
-                    }
-                  >
-                    <PixTransactionForm
-                      onComplete={handleTransactionComplete}
-                    />
-                  </Suspense>
-                  {isAuthenticated && (
-                    <motion.div
-                      className="mt-4 flex justify-end"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
+              {currentStep === "transaction" && (
+                <motion.div
+                  className="bg-white rounded-xl shadow-md overflow-hidden mb-8"
+                  initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
+                  whileHover={{ boxShadow: "0 8px 15px rgba(0, 0, 0, 0.1)" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                      Iniciar Transação Pix
+                    </h2>
+                    <Suspense
+                      fallback={
+                        <div className="flex justify-center py-4">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              duration: 1,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
+                            className="w-8 h-8 border-b-2 border-primary rounded-full"
+                          />
+                        </div>
+                      }
                     >
-                      <button
-                        onClick={() => {
-                          setDirection(-1);
-                          setCurrentStep("login");
-                        }}
-                        className="text-primary hover:text-primary/70 text-sm flex items-center"
+                      <PixTransactionForm
+                        onComplete={handleTransactionComplete}
+                      />
+                    </Suspense>
+                    {isAuthenticated && (
+                      <motion.div
+                        className="mt-4 flex justify-end"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
                       >
-                        <ArrowLeft className="h-4 w-4 mr-1" />
-                        Voltar para login
-                      </button>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {currentStep === "token" && (
-              <motion.div
-                className="bg-white rounded-xl shadow-md overflow-hidden"
-                initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
-                whileHover={{ boxShadow: "0 8px 15px rgba(0, 0, 0, 0.1)" }}
-                animate={{
-                  boxShadow: [
-                    "0 4px 6px rgba(0, 0, 0, 0.1)",
-                    "0 8px 15px rgba(19, 58, 111, 0.15)",
-                    "0 4px 6px rgba(0, 0, 0, 0.1)",
-                  ],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  times: [0, 0.5, 1],
-                }}
-              >
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Status do Token
-                  </h2>
-                  <Suspense
-                    fallback={
-                      <div className="flex justify-center py-4">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{
-                            duration: 1,
-                            repeat: Infinity,
-                            ease: "linear",
+                        <button
+                          onClick={() => {
+                            setDirection(-1);
+                            setCurrentStep("login");
                           }}
-                          className="w-8 h-8 border-b-2 border-primary rounded-full"
-                        />
-                      </div>
-                    }
-                  >
-                    <TokenDisplay />
-                  </Suspense>
-                  <motion.button
-                    onClick={handleBackToTransactions}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out flex items-center justify-center"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Voltar para Transações
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
+                          className="text-primary hover:text-primary/70 text-sm flex items-center"
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-1" />
+                          Voltar para login
+                        </button>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {currentStep === "token" && (
+                <motion.div
+                  className="bg-white rounded-xl shadow-md overflow-hidden"
+                  initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
+                  whileHover={{ boxShadow: "0 8px 15px rgba(0, 0, 0, 0.1)" }}
+                  animate={{
+                    boxShadow: [
+                      "0 4px 6px rgba(0, 0, 0, 0.1)",
+                      "0 8px 15px rgba(19, 58, 111, 0.15)",
+                      "0 4px 6px rgba(0, 0, 0, 0.1)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    times: [0, 0.5, 1],
+                  }}
+                >
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                      Status do Token
+                    </h2>
+                    <Suspense
+                      fallback={
+                        <div className="flex justify-center py-4">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              duration: 1,
+                              repeat: Infinity,
+                              ease: "linear",
+                            }}
+                            className="w-8 h-8 border-b-2 border-primary rounded-full"
+                          />
+                        </div>
+                      }
+                    >
+                      <TokenDisplay />
+                    </Suspense>
+                    <motion.button
+                      onClick={handleBackToTransactions}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full mt-4 bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out flex items-center justify-center"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Voltar para Transações
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
           </motion.div>
         </AnimatePresence>
       </div>

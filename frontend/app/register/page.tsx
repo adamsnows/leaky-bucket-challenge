@@ -50,7 +50,12 @@ export default function RegisterPage() {
           </svg>
         </motion.div>
 
-        <div className="max-w-xl mx-auto">
+        <motion.div
+          className="max-w-xl mx-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.5 }}
+        >
           <motion.div
             className="bg-white rounded-xl shadow-md overflow-hidden mb-8"
             initial={{ boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)" }}
@@ -67,6 +72,17 @@ export default function RegisterPage() {
             }
           >
             <RegisterForm onSuccess={handleRegisterSuccess} />
+            <div className="mb-4 text-center">
+              <p className="text-sm text-gray-600">
+                Já tem uma conta?{" "}
+                <Link
+                  href="/"
+                  className="text-primary font-medium hover:underline"
+                >
+                  Faça login
+                </Link>
+              </p>
+            </div>
           </motion.div>
 
           {isRegistered && (
@@ -88,7 +104,7 @@ export default function RegisterPage() {
               </p>
             </motion.div>
           )}
-        </div>
+        </motion.div>
       </div>
     </motion.main>
   );

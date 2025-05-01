@@ -148,8 +148,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   }, [rateLimited, retryAfter]);
 
   return (
-    <>
-      <Card className="w-full max-w-xl mx-auto">
+    <div className="p-6">
+      <Card className="w-full max-w-xl mx-auto ">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Cadastre-se</CardTitle>
           <CardDescription>
@@ -237,14 +237,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-center">
-            Já tem uma conta?{" "}
-            <Link href="/" className="text-primary font-medium hover:underline">
-              Faça login
-            </Link>
-          </p>
-        </CardFooter>
       </Card>
 
       <TokenDisplay
@@ -253,6 +245,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         onRateLimited={handleRateLimited}
         key={formSubmitted ? "submitted" : "idle"}
       />
-    </>
+    </div>
   );
 }

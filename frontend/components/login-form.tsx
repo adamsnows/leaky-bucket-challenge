@@ -183,17 +183,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-center">
-            Não tem uma conta?{" "}
-            <Link
-              href="/register"
-              className="text-primary font-medium hover:underline"
-            >
-              Registre-se
-            </Link>
-          </p>
-        </CardFooter>
       </Card>
 
       <TokenDisplay

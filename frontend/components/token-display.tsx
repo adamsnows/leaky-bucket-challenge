@@ -121,7 +121,7 @@ export default function TokenDisplay({
   const progressPercentage = (availableTokens / maxTokens) * 100;
 
   return (
-    <div className="mt-8 p-4 border rounded-md bg-background shadow-sm max-w-xl mx-auto w-full">
+    <div className="mt-2 p-6 border rounded-md bg-background shadow-sm max-w-xl mx-auto w-full">
       <div className="flex items-center gap-2 mb-2">
         {isRateLimited ? (
           <AlertTriangle className="h-5 w-5 text-destructive" />
