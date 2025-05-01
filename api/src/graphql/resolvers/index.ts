@@ -126,7 +126,7 @@ const resolvers = {
       { username, email, password }: RegisterArgs
     ): AuthResponse => {
       if (mockUsers.some((user) => user.email === email)) {
-        throw new UserInputError("User with this email already exists");
+        throw new UserInputError("Usuário com esse e-mail já existe!");
       }
 
       const newUser: User = {
@@ -156,12 +156,12 @@ const resolvers = {
 
       if (!user) {
         ctx.status = 401;
-        throw new UserInputError("Invalid credentials");
+        throw new UserInputError("Credenciais inválidas");
       }
 
       if (user.password !== password) {
         ctx.status = 401;
-        throw new AuthenticationError("Invalid credentials");
+        throw new AuthenticationError("Credenciais inválidas");
       }
 
       const { password: _, ...userWithoutPassword } = user;
@@ -179,11 +179,11 @@ const resolvers = {
       const { pixKeyType, pixKey, amount } = input;
 
       if (!pixKeyType || !pixKey || !amount) {
-        throw new UserInputError("Invalid input for PIX transaction");
+        throw new UserInputError("Todos os campos são obrigatórios");
       }
 
       if (amount <= 0) {
-        throw new UserInputError("Amount must be greater than zero");
+        throw new UserInputError("O valor deve ser maior que zero");
       }
 
       const transactionId = `pix-${Date.now()}-${Math.random()
