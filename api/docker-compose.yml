@@ -1,0 +1,41 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/leaky-bucket
+      - JWT_SECRET=mySecretKey
+      - JWT_EXPIRES_IN=1d
+      - BUCKET_CAPACITY=10
+      - LEAK_RATE=1
+      - REFILL_RATE=1
+    depends_on:
+      - mongodb
+    volumes:
+      - ./src:/app/src
+      - ./node_modules:/app/node_modules
+    networks:
+      - leaky-bucket-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - leaky-bucket-network
+    restart: unless-stopped
+
+networks:
+  leaky-bucket-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:

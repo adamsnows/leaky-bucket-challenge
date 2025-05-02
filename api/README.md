@@ -141,6 +141,49 @@ npm start
 
 O servidor GraphQL estará disponível em `http://localhost:4000/graphql`.
 
+### Executando com Docker
+
+O projeto também suporta execução em containers Docker, o que facilita a configuração do ambiente de desenvolvimento e simplifica a implantação.
+
+#### Pré-requisitos para Docker
+
+- Docker instalado no seu sistema
+- Docker Compose instalado no seu sistema
+
+#### Executando o projeto com Docker Compose
+
+```bash
+# Construir e iniciar os containers em modo detached
+docker-compose up -d
+
+# Verificar logs da aplicação
+docker-compose logs api
+
+# Verificar logs do MongoDB
+docker-compose logs mongodb
+
+# Parar os containers
+docker-compose down
+```
+
+O servidor GraphQL estará disponível em `http://localhost:4000/graphql`.
+
+#### Estrutura Docker
+
+O projeto utiliza os seguintes componentes Docker:
+
+- **Dockerfile**: Configura o ambiente Node.js para a API
+- **docker-compose.yml**: Orquestra os serviços:
+  - **api**: Serviço principal da aplicação, rodando em Node.js
+  - **mongodb**: Banco de dados MongoDB para persistência dos dados
+
+#### Volumes e Redes
+
+- A configuração do Docker Compose inclui:
+  - Volume persistente para dados do MongoDB
+  - Rede dedicada para comunicação entre containers
+  - Hot-reload ativado para desenvolvimento (alterações no código são refletidas automaticamente)
+
 ### Variáveis de Ambiente
 
 Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
@@ -247,8 +290,8 @@ mutation {
 - Implementação atual usa armazenamento em memória (para produção, use Redis)
 - Autenticação JWT simples (para produção, implemente refresh tokens)
 - Adicionar testes automatizados com Jest
-- Implementar logging estruturado
 - Adicionar validação de dados mais robusta
+- Configurar um pipeline CI/CD para automação de builds e deployments Docker
 
 ---
 
