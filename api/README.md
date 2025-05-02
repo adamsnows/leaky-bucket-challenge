@@ -293,6 +293,10 @@ mutation {
 - Adicionar validação de dados mais robusta
 - Configurar um pipeline CI/CD para automação de builds e deployments Docker
 
+## Diagrama de sequência
+
+- **Diagrama**: https://www.mermaidchart.com/raw/083fac4a-c2c3-4b48-9a3d-c5995d52843d?theme=light&version=v0.1&format=svg
+
 ---
 
 ## 📝 Especificações do BACEN (DICT)
