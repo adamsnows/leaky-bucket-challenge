@@ -148,7 +148,6 @@ O projeto utiliza o Shadcn UI, uma biblioteca de componentes para React que:
 
 ### Tema e Aparência
 
-- Sistema de tema claro/escuro
 - Design responsivo para desktop e mobile
 - Animações suaves com Framer Motion
 - Consistência visual em toda a aplicação
