@@ -1,9 +1,8 @@
 import dotenv from "dotenv";
+import { config as configDotenv } from "dotenv";
 
-// Load environment variables
-dotenv.config();
+configDotenv();
 
-// Interface para configurações do ambiente
 interface EnvironmentConfig {
   port: number;
   nodeEnv: string;
@@ -15,25 +14,23 @@ interface EnvironmentConfig {
   refillRate: number;
 }
 
-// Server configuration
-export const PORT = parseInt(process.env.PORT || "4000", 10);
-export const NODE_ENV = process.env.NODE_ENV || "development";
+// Função auxiliar para garantir que uma variável de ambiente exista
+const requireEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Environment variable ${name} is required`);
+  }
+  return value;
+};
 
-// Database configuration
-export const MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://localhost:27017/leaky-bucket";
-
-// JWT configuration
-export const JWT_SECRET = process.env.JWT_SECRET || "leaky-bucket-secret-key";
-export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
-
-// Rate limiting configuration (for Leaky Bucket implementation)
-export const BUCKET_CAPACITY = parseInt(
-  process.env.BUCKET_CAPACITY || "10",
-  10
-);
-export const LEAK_RATE = parseFloat(process.env.LEAK_RATE || "1"); // tokens per second
-export const REFILL_RATE = parseFloat(process.env.REFILL_RATE || "1"); // tokens per second
+export const PORT = parseInt(requireEnv("PORT"), 10);
+export const NODE_ENV = requireEnv("NODE_ENV");
+export const MONGODB_URI = requireEnv("MONGODB_URI");
+export const JWT_SECRET = requireEnv("JWT_SECRET");
+export const JWT_EXPIRES_IN = requireEnv("JWT_EXPIRES_IN");
+export const BUCKET_CAPACITY = parseInt(requireEnv("BUCKET_CAPACITY"), 10);
+export const LEAK_RATE = parseFloat(requireEnv("LEAK_RATE"));
+export const REFILL_RATE = parseFloat(requireEnv("REFILL_RATE"));
 
 export const config: EnvironmentConfig = {
   port: PORT,
