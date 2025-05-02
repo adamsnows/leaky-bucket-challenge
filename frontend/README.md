@@ -18,6 +18,7 @@ Este frontend permite aos usuários visualizar em tempo real o status dos seus t
 - **React Hook Form**: Biblioteca para gerenciamento de formulários
 - **Zod**: Biblioteca de validação de esquemas
 - **Framer Motion**: Biblioteca de animações para React
+- **Apollo Client**: Conectar aplicação React com API GraphQL
 
 ### Estrutura do Diretório
 
