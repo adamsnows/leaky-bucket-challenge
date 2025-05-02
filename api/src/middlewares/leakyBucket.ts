@@ -66,7 +66,7 @@ export const leakyBucketMiddleware = (options: {
   capacity?: number;
   identifierKey?: (ctx: Context) => string;
 }) => {
-  const capacity = options.capacity || BUCKET_CAPACITY;
+  const capacity = BUCKET_CAPACITY;
   const identifierKey = options.identifierKey || ((ctx: Context) => ctx.ip);
 
   return async (ctx: Context, next: Next) => {
