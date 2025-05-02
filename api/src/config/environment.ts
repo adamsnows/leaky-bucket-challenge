@@ -14,7 +14,6 @@ interface EnvironmentConfig {
   refillRate: number;
 }
 
-// Função auxiliar para garantir que uma variável de ambiente exista
 const requireEnv = (name: string): string => {
   const value = process.env[name];
   if (!value) {
