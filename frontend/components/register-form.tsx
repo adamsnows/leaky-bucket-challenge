@@ -104,7 +104,9 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           variant: "destructive",
         });
       }
-    } else if (response.data) {
+    }
+
+    if (response.data) {
       localStorage.setItem("authToken", response.data.token);
       localStorage.setItem("authUser", JSON.stringify(response.data.user));
 

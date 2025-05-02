@@ -1,5 +1,5 @@
 import { Context, Next } from "koa";
-import { BUCKET_CAPACITY } from "../config/environment";
+import { config } from "../config/environment";
 
 interface BucketState {
   tokens: number;
@@ -35,13 +35,14 @@ const formatTimeInMinutes = (seconds: number): string => {
 
   if (minutes === 0) {
     return `${remainingSeconds} segundos`;
-  } else if (remainingSeconds === 0) {
-    return `${minutes} ${minutes === 1 ? "minuto" : "minutos"}`;
-  } else {
-    return `${minutes} ${
-      minutes === 1 ? "minuto" : "minutos"
-    } e ${remainingSeconds} segundos`;
   }
+  if (remainingSeconds === 0) {
+    return `${minutes} ${minutes === 1 ? "minuto" : "minutos"}`;
+  }
+
+  return `${minutes} ${
+    minutes === 1 ? "minuto" : "minutos"
+  } e ${remainingSeconds} segundos`;
 };
 
 const getCurrentTokens = (
@@ -66,7 +67,7 @@ export const leakyBucketMiddleware = (options: {
   capacity?: number;
   identifierKey?: (ctx: Context) => string;
 }) => {
-  const capacity = BUCKET_CAPACITY;
+  const capacity = config.bucketCapacity;
   const identifierKey = options.identifierKey || ((ctx: Context) => ctx.ip);
 
   return async (ctx: Context, next: Next) => {
@@ -177,7 +178,14 @@ export const leakyBucketMiddleware = (options: {
       if (typeof responseBody === "string") {
         try {
           responseBody = JSON.parse(responseBody);
-        } catch (e) {}
+        } catch (e) {
+          console.error(
+            `[LeakyBucket] Failed to parse response body: ${
+              (e as Error).message
+            }`
+          );
+          throw new Error("Failed to parse response body");
+        }
       }
 
       const graphQLResponse = responseBody as GraphQLResponse;
@@ -185,9 +193,7 @@ export const leakyBucketMiddleware = (options: {
       const hasGraphQLErrors =
         graphQLResponse &&
         typeof graphQLResponse === "object" &&
-        "errors" in graphQLResponse &&
-        Array.isArray(graphQLResponse.errors) &&
-        graphQLResponse.errors.length > 0;
+        "errors" in graphQLResponse;
 
       if (hasGraphQLErrors) {
         if (graphQLResponse.errors && Array.isArray(graphQLResponse.errors)) {
@@ -226,7 +232,7 @@ export const leakyBucketMiddleware = (options: {
 
 export const getTokenStatus = (
   identifier: string,
-  capacity: number = BUCKET_CAPACITY
+  capacity: number = config.bucketCapacity
 ): { availableTokens: number; maxTokens: number } => {
   const now = Date.now();
   const bucket = buckets.get(identifier);

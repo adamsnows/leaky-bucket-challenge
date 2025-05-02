@@ -65,7 +65,6 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
     if (!response.success) {
       if (response.errorCode === 429) {
-        // Usa retryAfter se disponível, ou um valor padrão de 30 segundos
         const retry = response.retryAfter || 30;
 
         setRateLimited(true);
@@ -88,7 +87,9 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           variant: "destructive",
         });
       }
-    } else if (response.data) {
+    }
+
+    if (response.data) {
       localStorage.setItem("authToken", response.data.token);
       localStorage.setItem("authUser", JSON.stringify(response.data.user));
 

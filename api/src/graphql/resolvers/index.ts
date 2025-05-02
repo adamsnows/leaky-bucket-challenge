@@ -1,6 +1,6 @@
 import { Context } from "koa";
 import { AuthenticationError, UserInputError } from "apollo-server-koa";
-import { BUCKET_CAPACITY } from "../../config/environment";
+import { config } from "../../config/environment";
 import { getTokenStatus } from "../../middlewares/leakyBucket";
 
 interface User {
@@ -102,7 +102,7 @@ const resolvers = {
         ctx.response.get("X-RateLimit-Remaining") || "0",
         10
       );
-      const limit = BUCKET_CAPACITY;
+      const limit = config.bucketCapacity;
 
       return {
         remaining,
@@ -113,7 +113,7 @@ const resolvers = {
 
     tokenStatus: (_: any, __: any, { ctx }: ResolverContext): TokenStatus => {
       const identifier = ctx.state.rateLimit?.identifier || ctx.ip;
-      const capacity = ctx.state.rateLimit?.capacity || BUCKET_CAPACITY;
+      const capacity = config.bucketCapacity;
       const status = getTokenStatus(identifier, capacity);
 
       return status;

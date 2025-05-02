@@ -132,7 +132,9 @@ export default function PixTransactionForm({
           variant: "destructive",
         });
       }
-    } else if (response.data) {
+    }
+
+    if (response.data) {
       toast({
         title: "Transação iniciada com sucesso",
         description: `Transação Pix de R$ ${amountValue.toFixed(2)} iniciada`,

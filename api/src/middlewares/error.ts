@@ -1,5 +1,5 @@
 import { Context, Next } from "koa";
-import { NODE_ENV } from "../config/environment";
+import { config, NODE_ENV } from "../config/environment";
 
 interface AppError extends Error {
   status?: number;
@@ -31,7 +31,7 @@ const errorMiddleware = async (ctx: Context, next: Next): Promise<void> => {
         : {}),
     };
 
-    if (NODE_ENV !== "production") {
+    if (config.nodeEnv !== "production") {
       responseBody.stack = err.stack;
     }
 

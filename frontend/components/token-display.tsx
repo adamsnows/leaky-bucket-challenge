@@ -71,10 +71,11 @@ export default function TokenDisplay({
           setIsIncreasing(status.availableTokens > prevTokensRef.current);
           prevTokensRef.current = status.availableTokens;
           lastUpdateTimeRef.current = now;
-        } else if (prevTokensRef.current === null) {
+        }
+
+        if (prevTokensRef.current === null) {
           prevTokensRef.current = status.availableTokens;
           lastUpdateTimeRef.current = now;
-        } else {
         }
 
         setTokenStatus(status);

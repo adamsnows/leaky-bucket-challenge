@@ -9,38 +9,38 @@
       "name": "Frontend"
     }
   ],
-  "restoreTerminals.terminals": [
-    {
-      "splitTerminals": [
-        {
-          "name": "server",
-          "commands": ["npm i", "npm run dev"]
-        },
-        {
-          "name": "client",
-          "commands": ["npm run dev:client"]
-        },
-        {
-          "name": "test",
-          "commands": ["jest --watch"]
-        }
-      ]
-    },
-    {
-      "splitTerminals": [
-        {
-          "name": "build & e2e",
-          "commands": ["npm run eslint", "npm run build", "npm run e2e"],
-          "shouldRunCommands": false
-        },
-        {
-          "name": "worker",
-          "commands": ["npm-run-all --parallel redis tsc-watch-start worker"]
-        }
-      ]
-    }
-  ],
   "settings": {
-    "git.ignoreLimitWarning": true
+    "restoreTerminals.artificialDelayMilliseconds": 700,
+    "restoreTerminals.keepExistingTerminalsOpen": false,
+    "restoreTerminals.runOnStartup": true,
+    "restoreTerminals.terminals": [
+      {
+        "splitTerminals": [
+          {
+            "name": "GraphQL API Server",
+            "commands": ["cd ~/projects/woovi/leaky-bucket/api", "npm run dev"]
+          },
+          {
+            "name": "API Terminal",
+            "commands": ["cd ~/projects/woovi/leaky-bucket/api", "gl"]
+          }
+        ]
+      },
+      {
+        "splitTerminals": [
+          {
+            "name": "WebApp Server",
+            "commands": [
+              "cd ~/projects/woovi/leaky-bucket/frontend",
+              "npm run dev"
+            ]
+          },
+          {
+            "name": "WebApp",
+            "commands": ["cd ~/projects/woovi/leaky-bucket/frontend", "gl"]
+          }
+        ]
+      }
+    ]
   }
 }
