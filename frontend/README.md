@@ -197,8 +197,7 @@ Para testar o sistema de rate limiting através da interface:
 
 2. Continue até consumir todos os tokens
 
-   - Você verá uma notificação de erro 429 (Too Many Requests)
-   - O TokenDisplay mostrará um contador de tempo até o próximo token
+   - Você verá uma notificação de erro.
 
 3. Faça login com credenciais corretas
 
@@ -206,16 +205,17 @@ Para testar o sistema de rate limiting através da interface:
    - Observe que o número de tokens permanece o mesmo
 
 4. Teste a transação PIX
+
    - Inicie transações PIX para ver como o sistema lida com essas requisições
-   - Observe o comportamento do sistema quando todas as transações consomem tokens
+
+5. O sistema travará e não deixará você fazer nenhuma requisição caso tenham acabado os tokens
 
 ## 🚧 Limitações e Próximos Passos
 
 - Adicionar testes automatizados com React Testing Library e Jest
 - Implementar um sistema mais robusto de refresh token
-- Melhorar a responsividade para dispositivos mobile
-- Adicionar mais animações e feedback visual
 - Implementar um dashboard para administradores visualizarem o uso do sistema
+- Implementar um contador de tempo para que o usuário saiba quando será liberado
 
 ---
 
