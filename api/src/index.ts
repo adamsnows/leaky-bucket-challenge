@@ -5,7 +5,7 @@ import Router from "koa-router";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
-import { PORT, MONGODB_URI } from "./config/environment";
+import { PORT, MONGODB_URI, config } from "./config/environment";
 
 import typeDefs from "./graphql/typeDefs";
 import resolvers from "./graphql/resolvers";
@@ -63,7 +63,7 @@ const apolloServer = new ApolloServer({
   resolvers,
   context: ({ ctx }): ApolloContext => ({ ctx }),
   formatError: (error): GraphQLFormattedError => {
-    if (process.env.NODE_ENV === "production" && error.extensions?.exception) {
+    if (config.nodeEnv === "production" && error.extensions?.exception) {
       const exception = error.extensions.exception as {
         stacktrace?: readonly string[];
       };

@@ -1,5 +1,5 @@
 import { Context, Next } from "koa";
-import { config, NODE_ENV } from "../config/environment";
+import { config } from "../config/environment";
 
 interface AppError extends Error {
   status?: number;
