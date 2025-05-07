@@ -393,7 +393,13 @@ mutation {
 
 ## Diagrama de sequência
 
-- **Diagrama**: https://www.mermaidchart.com/raw/083fac4a-c2c3-4b48-9a3d-c5995d52843d?theme=light&version=v0.1&format=svg
+
+<div align="center">
+  <img src="https://img001.prntscr.com/file/img001/ICObCq_mSUWXJLj8uEhU7w.png" alt="Diagrama Mermaid" />
+</div>
+
+
+- **Diagrama**: 
 
 ## 🚧 Limitações e Próximos Passos
 
