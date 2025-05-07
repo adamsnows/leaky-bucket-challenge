@@ -177,15 +177,38 @@ export const leakyBucketMiddleware = (options: {
       let responseBody = ctx.body;
       if (typeof responseBody === "string") {
         try {
+          // Verificar se a resposta parece ser HTML antes de tentar fazer o parse
+          if (
+            responseBody.trim().startsWith("<!DOCTYPE") ||
+            responseBody.trim().startsWith("<html")
+          ) {
+            console.log("[LeakyBucket] Response is HTML, skipping JSON parsing");
+            bucket.tokens += 1; // Restaura o token já que não é uma resposta JSON válida para análise
+            console.log(
+              `[LeakyBucket] Request successful, token restored. Available: ${bucket.tokens}/${capacity}`
+            );
+            return;
+          }
+
           responseBody = JSON.parse(responseBody);
         } catch (e) {
           console.error(
-            `[LeakyBucket] Failed to parse response body: ${
-              (e as Error).message
-            }`
+            `[LeakyBucket] Failed to parse response body: ${(e as Error).message}`
           );
-          throw new Error("Failed to parse response body");
+          bucket.tokens += 1;
+          console.log(
+            `[LeakyBucket] Request error, token restored. Remaining: ${bucket.tokens}/${capacity}`
+          );
+          return;
         }
+      }
+
+      if (!responseBody || typeof responseBody !== "object") {
+        bucket.tokens += 1;
+        console.log(
+          `[LeakyBucket] Non-object response, token restored. Available: ${bucket.tokens}/${capacity}`
+        );
+        return;
       }
 
       const graphQLResponse = responseBody as GraphQLResponse;

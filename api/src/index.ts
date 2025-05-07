@@ -33,11 +33,32 @@ const router = new Router();
 
 const connectDB = async (): Promise<void> => {
   try {
+
     await mongoose.connect(MONGODB_URI);
     console.log("MongoDB connected successfully");
   } catch (err) {
-    console.error("MongoDB connection error:", err);
-    process.exit(1);
+    console.error("Failed with primary MongoDB URI, trying fallback connection...");
+
+
+    try {
+
+      if (MONGODB_URI.includes('localhost')) {
+        await mongoose.connect(MONGODB_URI.replace('localhost', 'mongodb'));
+        console.log("MongoDB connected successfully via Docker network");
+      }
+
+      else if (MONGODB_URI.includes('mongodb:')) {
+        await mongoose.connect(MONGODB_URI.replace('mongodb:', 'localhost:'));
+        console.log("MongoDB connected successfully via localhost");
+      }
+      else {
+        console.error("MongoDB connection error:", err);
+        process.exit(1);
+      }
+    } catch (fallbackErr) {
+      console.error("All MongoDB connection attempts failed:", fallbackErr);
+      process.exit(1);
+    }
   }
 };
 
