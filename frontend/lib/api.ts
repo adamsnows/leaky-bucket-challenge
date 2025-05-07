@@ -1,4 +1,4 @@
-import api from "./axios";
+import api from "./api-client";
 
 interface PixTransactionInput {
   pixKeyType: string;
@@ -57,10 +57,12 @@ async function executeGraphQL<T>(
   retryAfter?: number;
 }> {
   try {
-    const { data } = await api.post("", {
+    const response = await api.post("", {
       query,
       variables,
     });
+
+    const data = response.data;
 
     if (data.errors) {
       const errorMessage =

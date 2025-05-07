@@ -18,6 +18,13 @@ O objetivo é implementar uma estratégia de **Leaky Bucket** com autenticação
 
 ## 🔄 Controle de Versão
 
+### v1.2 (07/05) - Correções de TypeScript e melhorias no client
+
+- **Correções no api-client**: Resolução de problemas de tipagem no cliente de API do frontend
+- **Melhoria na manipulação de headers**: Implementação da classe Headers para correta tipagem dos cabeçalhos HTTP
+- **Tratamento adequado de API_URL**: Garantia de que o API_URL nunca seja undefined
+- **Manipulação segura de autenticação**: Melhor gerenciamento do token de autenticação nos headers
+
 ### v1.1 (07/05) - Atomicidade, concorrência e pnpm workspace
 
 Melhorias significativas para o sistema de rate limiting, com foco em:
