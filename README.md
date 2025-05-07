@@ -25,6 +25,7 @@ Melhorias significativas para o sistema de rate limiting, com foco em:
 - **Operações atômicas**: Implementação do padrão Mutex para garantir atomicidade nas operações de leitura/escrita de tokens
 - **Testes de concorrência**: Suporte a testes automatizados para validar comportamento em ambientes de alta concorrência
 - **Prevenção de race conditions**: Solução para problemas onde múltiplas requisições simultâneas poderiam ultrapassar os limites configurados
+- **PNPM Workspace**: Solução para monorepos
 
 #### Principais melhorias:
 
