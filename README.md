@@ -18,7 +18,7 @@ O objetivo é implementar uma estratégia de **Leaky Bucket** com autenticação
 
 ## 🔄 Controle de Versão
 
-### v1.1 (07/05) - Atomicidade e Concorrência
+### v1.1 (07/05) - Atomicidade, concorrência e pnpm workspace
 
 Melhorias significativas para o sistema de rate limiting, com foco em:
 
