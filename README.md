@@ -398,9 +398,6 @@ mutation {
   <img src="https://img001.prntscr.com/file/img001/ICObCq_mSUWXJLj8uEhU7w.png" alt="Diagrama Mermaid" />
 </div>
 
-
-- **Diagrama**: 
-
 ## 🚧 Limitações e Próximos Passos
 
 - Implementação atual usa armazenamento em memória (para produção, usar Redis)
