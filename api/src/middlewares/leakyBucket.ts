@@ -1,9 +1,7 @@
 import { Context, Next } from "koa";
 import { config } from "../config/environment";
-// Importar mutex para garantir atomicidade
 import { Mutex } from 'async-mutex';
 
-// Mapa de mutexes para cada identificador de bucket
 const mutexMap = new Map<string, Mutex>();
 
 interface BucketState {
@@ -28,7 +26,6 @@ interface GraphQLResponse {
 
 export const buckets = new Map<string, BucketState>();
 
-// Função para obter um mutex para um identificador específico
 const getMutex = (identifier: string): Mutex => {
   let mutex = mutexMap.get(identifier);
   if (!mutex) {
@@ -104,11 +101,9 @@ export const leakyBucketMiddleware = (options: {
       return;
     }
 
-    // Obter o mutex para este identificador
     const mutex = getMutex(identifier);
 
-    // Adquirir o lock antes de qualquer operação no bucket
-    // Isso garante que apenas uma requisição manipule o bucket de cada vez
+
     return await mutex.runExclusive(async () => {
       let bucket = buckets.get(identifier);
       if (!bucket) {
@@ -186,7 +181,6 @@ export const leakyBucketMiddleware = (options: {
         return;
       }
 
-      // Decrementar token atomicamente dentro do lock
       bucket.tokens -= 1;
       const currentTokens = bucket.tokens;
 
@@ -208,7 +202,6 @@ export const leakyBucketMiddleware = (options: {
             ) {
               console.log("[LeakyBucket] Response is HTML, skipping JSON parsing");
 
-              // Restaurar o token atomicamente dentro do mesmo lock
               await mutex.runExclusive(() => {
                 const bucket = buckets.get(identifier);
                 if (bucket) {
@@ -228,7 +221,6 @@ export const leakyBucketMiddleware = (options: {
               `[LeakyBucket] Failed to parse response body: ${(e as Error).message}`
             );
 
-            // Restaurar o token atomicamente dentro do mesmo lock
             await mutex.runExclusive(() => {
               const bucket = buckets.get(identifier);
               if (bucket) {
@@ -314,15 +306,14 @@ export const leakyBucketMiddleware = (options: {
   };
 };
 
-export const getTokenStatus = (
+export const getTokenStatus = async (
   identifier: string,
   capacity: number = config.bucketCapacity
-): { availableTokens: number; maxTokens: number } => {
+): Promise<{ availableTokens: number; maxTokens: number; }> => {
   const now = Date.now();
   const mutex = getMutex(identifier);
 
-  // Usa o mesmo mecanismo de lock para atomicidade
-  return mutex.runExclusive(() => {
+  return await mutex.runExclusive(async () => {
     const bucket = buckets.get(identifier);
 
     if (!bucket) {

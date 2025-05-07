@@ -66,20 +66,18 @@ async function executeGraphQL<T>(
       const errorMessage =
         data.errors[0]?.message || "Erro na requisição GraphQL";
 
-      // Identificar erro de rate limiting pelo conteúdo da mensagem
       if (
         errorMessage.toLowerCase().includes("rate limit") ||
         errorMessage.toLowerCase().includes("too many requests") ||
         errorMessage.toLowerCase().includes("retry after")
       ) {
-        // Extrair o tempo de retry se disponível
         const retryMatch = errorMessage.match(/retry after (\d+)/i);
         const retrySeconds = retryMatch ? retryMatch[1] : null;
 
         return {
           data: null,
           error: errorMessage,
-          errorCode: 429, // Simular código 429 (Too Many Requests)
+          errorCode: 429,
           retryAfter: retrySeconds ? parseInt(retrySeconds, 10) : undefined,
         };
       }
@@ -94,7 +92,6 @@ async function executeGraphQL<T>(
         ? error.message
         : "Erro desconhecido na requisição";
 
-    // Verificar se o erro do Axios já contém informação de rate limiting
     const isRateLimited =
       errorMessage.toLowerCase().includes("limite de requisições") ||
       errorMessage.toLowerCase().includes("rate limit");
