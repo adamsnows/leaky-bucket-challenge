@@ -81,7 +81,6 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
     if (!response.success) {
       if (response.errorCode === 429) {
-        // Usa retryAfter se disponível, ou um valor padrão de 30 segundos
         const retry = response.retryAfter || 30;
 
         setRateLimited(true);

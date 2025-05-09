@@ -7,6 +7,10 @@
     {
       "path": "frontend",
       "name": "Frontend"
+    },
+    {
+      "path": ".",
+      "name": "External"
     }
   ],
   "settings": {
@@ -17,30 +21,15 @@
       {
         "splitTerminals": [
           {
-            "name": "GraphQL API Server",
-            "commands": ["cd ~/projects/woovi/leaky-bucket/api", "npm run dev"]
+            "name": "Leaky Bucket Server",
+            "commands": ["cd ~/projects/github-projects/leaky-bucket", "pnpm dev"]
           },
           {
-            "name": "API Terminal",
-            "commands": ["cd ~/projects/woovi/leaky-bucket/api", "gl"]
+            "name": "Leaky Bucket Terminal",
+            "commands": ["cd ~/projects/github-projects/leaky-bucket/api", "gl"]
           }
         ]
       },
-      {
-        "splitTerminals": [
-          {
-            "name": "WebApp Server",
-            "commands": [
-              "cd ~/projects/woovi/leaky-bucket/frontend",
-              "npm run dev"
-            ]
-          },
-          {
-            "name": "WebApp",
-            "commands": ["cd ~/projects/woovi/leaky-bucket/frontend", "gl"]
-          }
-        ]
-      }
     ]
   }
 }

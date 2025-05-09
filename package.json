@@ -1,0 +1,35 @@
+{
+  "name": "leaky-bucket",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Woovi Leaky Bucket Challenge - Multi-tenant rate limiting implementation",
+  "scripts": {
+    "api:dev": "cd api && pnpm dev",
+    "api:build": "cd api && pnpm build",
+    "api:start": "cd api && pnpm start",
+    "frontend:dev": "cd frontend && pnpm dev",
+    "frontend:build": "cd frontend && pnpm build",
+    "frontend:start": "cd frontend && pnpm start",
+    "dev": "pnpm --parallel dev",
+    "build": "pnpm --recursive build",
+    "start": "pnpm --parallel start",
+    "clean": "pnpm --recursive clean"
+  },
+  "keywords": [
+    "leaky-bucket",
+    "rate-limiting",
+    "woovi",
+    "monorepo",
+    "pix"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=8"
+  },
+  "workspaces": [
+    "api",
+    "frontend"
+  ]
+}

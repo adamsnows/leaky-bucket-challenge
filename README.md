@@ -16,6 +16,35 @@ O objetivo é implementar uma estratégia de **Leaky Bucket** com autenticação
 - A cada hora, 1 token é adicionado ao total de tokens disponíveis
 - 10 é o limite máximo de tokens
 
+## 🔄 Controle de Versão
+
+### v1.2 (07/05) - Correções de TypeScript e melhorias no client
+
+- **Correções no api-client**: Resolução de problemas de tipagem no cliente de API do frontend
+- **Melhoria na manipulação de headers**: Implementação da classe Headers para correta tipagem dos cabeçalhos HTTP
+- **Tratamento adequado de API_URL**: Garantia de que o API_URL nunca seja undefined
+- **Manipulação segura de autenticação**: Melhor gerenciamento do token de autenticação nos headers
+
+### v1.1 (07/05) - Atomicidade, concorrência e pnpm workspace
+
+Melhorias significativas para o sistema de rate limiting, com foco em:
+
+- **Operações atômicas**: Implementação do padrão Mutex para garantir atomicidade nas operações de leitura/escrita de tokens
+- **Testes de concorrência**: Suporte a testes automatizados para validar comportamento em ambientes de alta concorrência
+- **Prevenção de race conditions**: Solução para problemas onde múltiplas requisições simultâneas poderiam ultrapassar os limites configurados
+- **PNPM Workspace**: Solução para monorepos
+
+#### Principais melhorias:
+
+- Utilização da biblioteca `async-mutex` para garantir operações atômicas
+- Implementação de testes simplificados para validar atomicidade
+- Adição de script de teste de carga K6 para simular requisições concorrentes
+- Melhorias na documentação sobre concorrência e atomicidade
+
+### v1.0 (02/05 2025) - Versão inicial
+
+Implementação inicial do sistema Leaky Bucket com todas as funcionalidades básicas.
+
 ## 🏗️ Arquitetura do Projeto
 
 O projeto está dividido em duas partes principais:
@@ -95,8 +124,45 @@ O coração da aplicação é o middleware Leaky Bucket implementado em `src/mid
 - Aplica a lógica de consumo e restauração de tokens
 - Implementa o mecanismo de recarga de tokens (1 token por hora)
 - Impede o usuário de fazer mais requisições ao bater o limite
+- **NOVO (v1.2)**: Garante atomicidade das operações usando Mutex
 
-#### Implementação do Leaky Bucket
+#### Implementação do Leaky Bucket com Mutex (v1.2)
+
+```typescript
+// Importar mutex para garantir atomicidade
+import { Mutex } from 'async-mutex';
+
+// Mapa de mutexes para cada identificador de bucket
+const mutexMap = new Map<string, Mutex>();
+
+// Obtém um mutex para um identificador específico
+const getMutex = (identifier: string): Mutex => {
+  let mutex = mutexMap.get(identifier);
+  if (!mutex) {
+    mutex = new Mutex();
+    mutexMap.set(identifier, mutex);
+  }
+  return mutex;
+};
+
+// Uso do mutex para garantir atomicidade nas operações
+return await mutex.runExclusive(async () => {
+  // Lógica de verificação e consumo de tokens
+  // Operações são realizadas de forma atômica dentro deste bloco
+  if (bucket.tokens < 1) {
+    // Lógica de limite excedido
+    return;
+  }
+
+  bucket.tokens -= 1;
+  const currentTokens = bucket.tokens;
+
+  // Resto da lógica do middleware
+  // ...
+});
+```
+
+#### Implementação original do Leaky Bucket
 
 ```typescript
 bucket.tokens -= 1;
@@ -312,6 +378,30 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
 4. Após consumir todos os tokens, você receberá um erro
 5. Use a query `tokenStatus` para monitorar o estado dos seus tokens
 
+### Teste de Carga com K6 (v1.2)
+
+Para validar o comportamento do middleware sob alta concorrência:
+
+1. Instale o K6: `brew install k6` (no macOS)
+2. Execute o teste de carga: `k6 run api/src/tests/k6-leaky-bucket-test.js`
+3. Observe o relatório para verificar o comportamento do leaky bucket em condições de alta concorrência
+
+O teste de carga simula múltiplos usuários acessando a API simultaneamente e verifica se o limite de tokens é respeitado adequadamente.
+
+### Testes Unitários para Atomicidade (v1.2)
+
+O projeto agora inclui testes automatizados para validar a atomicidade das operações:
+
+```bash
+cd api
+pnpm test src/tests/leakyBucket.test.ts
+```
+
+Esses testes verificam se:
+- O consumo de tokens respeita o limite configurado
+- As operações de consumo e restauração de tokens são atômicas
+- Múltiplas requisições simultâneas são tratadas corretamente
+
 ## 📚 Documentação da API GraphQL
 
 ### Queries
@@ -393,7 +483,10 @@ mutation {
 
 ## Diagrama de sequência
 
-- **Diagrama**: https://www.mermaidchart.com/raw/083fac4a-c2c3-4b48-9a3d-c5995d52843d?theme=light&version=v0.1&format=svg
+
+<div align="center">
+  <img src="https://img001.prntscr.com/file/img001/ICObCq_mSUWXJLj8uEhU7w.png" alt="Diagrama Mermaid" />
+</div>
 
 ## 🚧 Limitações e Próximos Passos
 
@@ -401,6 +494,8 @@ mutation {
 - Autenticação JWT simples (para produção, implementar refresh tokens)
 - Adicionar testes automatizados para frontend e backend
 - Implementar um contador de tempo para que o usuário saiba quando será liberado um novo token
+- **NOVO (v1.2)**: Melhorar cobertura de testes para cenários específicos de concorrência
+- **NOVO (v1.2)**: Implementar monitoramento em tempo real do consumo de tokens
 
 ## 📝 Especificações do BACEN (DICT)
 

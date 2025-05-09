@@ -1,12 +1,13 @@
 {
-  "name": "pix-transaction-leaky-bucket",
+  "name": "@leaky-bucket/frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rimraf .next out node_modules"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -68,6 +69,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8",
+    "rimraf": "^5.0.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
   }

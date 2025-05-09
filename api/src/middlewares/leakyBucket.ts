@@ -1,5 +1,8 @@
 import { Context, Next } from "koa";
 import { config } from "../config/environment";
+import { Mutex } from 'async-mutex';
+
+const mutexMap = new Map<string, Mutex>();
 
 interface BucketState {
   tokens: number;
@@ -22,6 +25,15 @@ interface GraphQLResponse {
 }
 
 export const buckets = new Map<string, BucketState>();
+
+const getMutex = (identifier: string): Mutex => {
+  let mutex = mutexMap.get(identifier);
+  if (!mutex) {
+    mutex = new Mutex();
+    mutexMap.set(identifier, mutex);
+  }
+  return mutex;
+};
 
 const calculateTokensToAdd = (lastRefill: number, now: number): number => {
   const millisecondsInHour = 60 * 60 * 1000;
@@ -89,167 +101,235 @@ export const leakyBucketMiddleware = (options: {
       return;
     }
 
-    let bucket = buckets.get(identifier);
-    if (!bucket) {
-      bucket = {
-        tokens: capacity,
-        lastRefill: now,
-        lastRequest: now,
-      };
-      buckets.set(identifier, bucket);
-    } else {
-      getCurrentTokens(bucket, capacity, now);
-      bucket.lastRequest = now;
-    }
+    const mutex = getMutex(identifier);
 
-    if (bucket.tokens < 1) {
-      const millisecondsUntilNextToken =
-        60 * 60 * 1000 - ((now - bucket.lastRefill) % (60 * 60 * 1000));
-      const secondsUntilNextToken = Math.ceil(
-        millisecondsUntilNextToken / 1000
-      );
 
-      ctx.set("X-RateLimit-Limit", capacity.toString());
-      ctx.set("X-RateLimit-Remaining", "0");
-      ctx.set("X-RateLimit-Reset", secondsUntilNextToken.toString());
+    return await mutex.runExclusive(async () => {
+      let bucket = buckets.get(identifier);
+      if (!bucket) {
+        bucket = {
+          tokens: capacity,
+          lastRefill: now,
+          lastRequest: now,
+        };
+        buckets.set(identifier, bucket);
+      } else {
+        getCurrentTokens(bucket, capacity, now);
+        bucket.lastRequest = now;
+      }
 
-      const isGraphQLRequest =
-        requestBody &&
-        typeof requestBody === "object" &&
-        "query" in requestBody;
+      if (bucket.tokens < 1) {
+        const millisecondsUntilNextToken =
+          60 * 60 * 1000 - ((now - bucket.lastRefill) % (60 * 60 * 1000));
+        const secondsUntilNextToken = Math.ceil(
+          millisecondsUntilNextToken / 1000
+        );
 
-      if (isGraphQLRequest) {
-        ctx.body = {
-          data: null,
-          errors: [
-            {
-              message: `Limite de requisições excedido. Por favor, tente novamente em ${formatTimeInMinutes(
-                secondsUntilNextToken
-              )}.`,
-              extensions: {
-                code: "RATE_LIMIT_EXCEEDED",
-                retryAfter: secondsUntilNextToken,
-                retryAfterFormatted: formatTimeInMinutes(secondsUntilNextToken),
-                availableTokens: 0,
-                maxTokens: capacity,
-                tokenStatus: {
-                  available: 0,
-                  maximum: capacity,
-                  remaining: 0,
+        ctx.set("X-RateLimit-Limit", capacity.toString());
+        ctx.set("X-RateLimit-Remaining", "0");
+        ctx.set("X-RateLimit-Reset", secondsUntilNextToken.toString());
+
+        const isGraphQLRequest =
+          requestBody &&
+          typeof requestBody === "object" &&
+          "query" in requestBody;
+
+        if (isGraphQLRequest) {
+          ctx.body = {
+            data: null,
+            errors: [
+              {
+                message: `Limite de requisições excedido. Por favor, tente novamente em ${formatTimeInMinutes(
+                  secondsUntilNextToken
+                )}.`,
+                extensions: {
+                  code: "RATE_LIMIT_EXCEEDED",
+                  retryAfter: secondsUntilNextToken,
+                  retryAfterFormatted: formatTimeInMinutes(secondsUntilNextToken),
+                  availableTokens: 0,
+                  maxTokens: capacity,
+                  tokenStatus: {
+                    available: 0,
+                    maximum: capacity,
+                    remaining: 0,
+                  },
                 },
               },
+            ],
+          };
+        } else {
+          ctx.body = {
+            success: false,
+            message: `Limite de requisições excedido. Por favor, tente novamente em ${formatTimeInMinutes(
+              secondsUntilNextToken
+            )}.`,
+            retryAfter: secondsUntilNextToken,
+            retryAfterFormatted: formatTimeInMinutes(secondsUntilNextToken),
+            tokenStatus: {
+              available: 0,
+              maximum: capacity,
+              remaining: 0,
             },
-          ],
-        };
-      } else {
-        ctx.body = {
-          success: false,
-          message: `Limite de requisições excedido. Por favor, tente novamente em ${formatTimeInMinutes(
-            secondsUntilNextToken
-          )}.`,
-          retryAfter: secondsUntilNextToken,
-          retryAfterFormatted: formatTimeInMinutes(secondsUntilNextToken),
-          tokenStatus: {
-            available: 0,
-            maximum: capacity,
-            remaining: 0,
-          },
-        };
-      }
-
-      console.log(
-        `[LeakyBucket] Rate limit exceeded for requests. Retry after ${formatTimeInMinutes(
-          secondsUntilNextToken
-        )}.`
-      );
-      return;
-    }
-
-    bucket.tokens -= 1;
-
-    ctx.set("X-RateLimit-Limit", capacity.toString());
-    ctx.set("X-RateLimit-Remaining", bucket.tokens.toString());
-
-    try {
-      await next();
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      let responseBody = ctx.body;
-      if (typeof responseBody === "string") {
-        try {
-          responseBody = JSON.parse(responseBody);
-        } catch (e) {
-          console.error(
-            `[LeakyBucket] Failed to parse response body: ${
-              (e as Error).message
-            }`
-          );
-          throw new Error("Failed to parse response body");
+          };
         }
+
+        console.log(
+          `[LeakyBucket] Rate limit exceeded for requests. Retry after ${formatTimeInMinutes(
+            secondsUntilNextToken
+          )}.`
+        );
+        return;
       }
 
-      const graphQLResponse = responseBody as GraphQLResponse;
+      bucket.tokens -= 1;
+      const currentTokens = bucket.tokens;
 
-      const hasGraphQLErrors =
-        graphQLResponse &&
-        typeof graphQLResponse === "object" &&
-        "errors" in graphQLResponse;
+      ctx.set("X-RateLimit-Limit", capacity.toString());
+      ctx.set("X-RateLimit-Remaining", currentTokens.toString());
 
-      if (hasGraphQLErrors) {
-        if (graphQLResponse.errors && Array.isArray(graphQLResponse.errors)) {
-          graphQLResponse.errors.forEach((error: GraphQLError) => {
-            if (!error.extensions) {
-              error.extensions = {};
+      let tokenRestored = false;
+
+      try {
+        await next();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        let responseBody = ctx.body;
+        if (typeof responseBody === "string") {
+          try {
+            if (
+              responseBody.trim().startsWith("<!DOCTYPE") ||
+              responseBody.trim().startsWith("<html")
+            ) {
+              console.log("[LeakyBucket] Response is HTML, skipping JSON parsing");
+
+              await mutex.runExclusive(() => {
+                const bucket = buckets.get(identifier);
+                if (bucket) {
+                  bucket.tokens += 1;
+                  tokenRestored = true;
+                  console.log(
+                    `[LeakyBucket] Request successful, token restored. Available: ${bucket.tokens}/${capacity}`
+                  );
+                }
+              });
+              return;
             }
 
-            error.extensions.tokenStatus = {
-              available: bucket.tokens,
-              maximum: capacity,
-              remaining: bucket.tokens,
-            };
-          });
+            responseBody = JSON.parse(responseBody);
+          } catch (e) {
+            console.error(
+              `[LeakyBucket] Failed to parse response body: ${(e as Error).message}`
+            );
 
-          ctx.body = graphQLResponse;
+            await mutex.runExclusive(() => {
+              const bucket = buckets.get(identifier);
+              if (bucket) {
+                bucket.tokens += 1;
+                tokenRestored = true;
+                console.log(
+                  `[LeakyBucket] Request error, token restored. Remaining: ${bucket.tokens}/${capacity}`
+                );
+              }
+            });
+            return;
+          }
         }
 
+        if (!responseBody || typeof responseBody !== "object") {
+          await mutex.runExclusive(() => {
+            const bucket = buckets.get(identifier);
+            if (bucket) {
+              bucket.tokens += 1;
+              tokenRestored = true;
+              console.log(
+                `[LeakyBucket] Non-object response, token restored. Available: ${bucket.tokens}/${capacity}`
+              );
+            }
+          });
+          return;
+        }
+
+        const graphQLResponse = responseBody as GraphQLResponse;
+
+        const hasGraphQLErrors =
+          graphQLResponse &&
+          typeof graphQLResponse === "object" &&
+          "errors" in graphQLResponse;
+
+        if (hasGraphQLErrors) {
+          if (graphQLResponse.errors && Array.isArray(graphQLResponse.errors)) {
+            let currentTokenValue = 0;
+            await mutex.runExclusive(() => {
+              const bucket = buckets.get(identifier);
+              if (bucket) {
+                currentTokenValue = bucket.tokens;
+              }
+            });
+
+            graphQLResponse.errors.forEach((error: GraphQLError) => {
+              if (!error.extensions) {
+                error.extensions = {};
+              }
+
+              error.extensions.tokenStatus = {
+                available: currentTokenValue,
+                maximum: capacity,
+                remaining: currentTokenValue,
+              };
+            });
+
+            ctx.body = graphQLResponse;
+          }
+
+          console.log(
+            `[LeakyBucket] Request failed (GraphQL errors found), token consumed. Remaining: ${currentTokens}/${capacity}`
+          );
+        } else {
+          await mutex.runExclusive(() => {
+            const bucket = buckets.get(identifier);
+            if (bucket) {
+              bucket.tokens += 1;
+              tokenRestored = true;
+              console.log(
+                `[LeakyBucket] Request successful, token restored. Available: ${bucket.tokens}/${capacity}`
+              );
+            }
+          });
+        }
+      } catch (error) {
         console.log(
-          `[LeakyBucket] Request failed (GraphQL errors found), token consumed. Remaining: ${bucket.tokens}/${capacity}`
+          `[LeakyBucket] Request error, token consumed. Remaining: ${currentTokens}/${capacity}`
         );
-      } else {
-        bucket.tokens += 1;
-        console.log(
-          `[LeakyBucket] Request successful, token restored. Available: ${bucket.tokens}/${capacity}`
-        );
+        throw error;
       }
-    } catch (error) {
-      console.log(
-        `[LeakyBucket] Request error, token consumed. Remaining: ${bucket.tokens}/${capacity}`
-      );
-      throw error;
-    }
+    });
   };
 };
 
-export const getTokenStatus = (
+export const getTokenStatus = async (
   identifier: string,
   capacity: number = config.bucketCapacity
-): { availableTokens: number; maxTokens: number } => {
+): Promise<{ availableTokens: number; maxTokens: number; }> => {
   const now = Date.now();
-  const bucket = buckets.get(identifier);
+  const mutex = getMutex(identifier);
 
-  if (!bucket) {
+  return await mutex.runExclusive(async () => {
+    const bucket = buckets.get(identifier);
+
+    if (!bucket) {
+      return {
+        availableTokens: capacity,
+        maxTokens: capacity,
+      };
+    }
+
+    const availableTokens = getCurrentTokens(bucket, capacity, now);
+
     return {
-      availableTokens: capacity,
+      availableTokens,
       maxTokens: capacity,
     };
-  }
-
-  const availableTokens = getCurrentTokens(bucket, capacity, now);
-
-  return {
-    availableTokens,
-    maxTokens: capacity,
-  };
+  });
 };
 
 export default leakyBucketMiddleware;
