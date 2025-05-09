@@ -2,9 +2,13 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts?(x)', '**/?(*.)+(spec|test).ts?(x)'],
+  testMatch: [
+    '**/__tests__/**/*.{js,ts}?(x)',
+    '**/?(*.)+(spec|test).{js,ts}?(x)'
+  ],
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest'
+    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(js|jsx)$': 'babel-jest'
   },
   collectCoverageFrom: [
     'src/**/*.{js,ts}',

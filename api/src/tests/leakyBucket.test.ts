@@ -1,5 +1,6 @@
-import { buckets } from '../middlewares/leakyBucket';
-
+// @ts-nocheck
+import { buckets, leakyBucketMiddleware, getTokenStatus } from '../middlewares/leakyBucket';
+import { config } from '../config/environment';
 
 const mockLeakyBucket = {
   consumeToken: (identifier: string, capacity = 5): boolean => {
@@ -30,9 +31,25 @@ const mockLeakyBucket = {
   }
 };
 
+const createMockContext = (overrides = {}) => {
+  return {
+    ip: '127.0.0.1',
+    state: {},
+    request: { body: {} },
+    response: {
+      headers: {},
+      get: jest.fn().mockImplementation(header => this.headers[header])
+    },
+    set: jest.fn(),
+    body: {},
+    ...overrides
+  };
+};
+
 describe('Leaky Bucket Atomicity Tests', () => {
   beforeEach(() => {
     buckets.clear();
+    jest.clearAllMocks();
   });
 
   test('should handle concurrent token consumption correctly', () => {
@@ -97,3 +114,4 @@ describe('Leaky Bucket Atomicity Tests', () => {
     expect(buckets.get(identifier)?.tokens).toBe(0);
   });
 });
+

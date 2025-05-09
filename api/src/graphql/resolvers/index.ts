@@ -111,10 +111,10 @@ const resolvers = {
       };
     },
 
-    tokenStatus: (_: any, __: any, { ctx }: ResolverContext): TokenStatus => {
+    tokenStatus: async (_: any, __: any, { ctx }: ResolverContext): Promise<TokenStatus> => {
       const identifier = ctx.state.rateLimit?.identifier || ctx.ip;
       const capacity = config.bucketCapacity;
-      const status = getTokenStatus(identifier, capacity);
+      const status = await getTokenStatus(identifier, capacity);
 
       return status;
     },
