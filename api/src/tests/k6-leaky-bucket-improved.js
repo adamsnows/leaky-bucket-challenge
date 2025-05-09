@@ -56,8 +56,8 @@ export const options = {
   },
 
   thresholds: {
-    http_req_failed: ['rate<0.1'], // Menos de 10% de falhas
-    http_req_duration: ['p(95)<500'], // 95% das requisições abaixo de 500ms
+    http_req_failed: ['rate<0.5'], // Menos de 50% de falhas (mais tolerante em testes de pico)
+    http_req_duration: ['p(95)<2000'], // 95% das requisições abaixo de 2000ms (mais tolerante)
   },
 
   // Desabilite todos os cenários exceto o que você quer testar

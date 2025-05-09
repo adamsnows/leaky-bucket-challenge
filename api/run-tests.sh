@@ -1,5 +1,5 @@
 #!/bin/bash
-# filepath: /Users/adamsnows/Projects/github-projects/leaky-bucket/api/run-k6-tests.sh
+# filepath: /Users/adamsnows/Projects/github-projects/leaky-bucket/api/run-tests.sh
 
 # Cores para o terminal
 GREEN='\033[0;32m'
@@ -58,12 +58,12 @@ echo -e "${YELLOW}Verificando se o servidor está rodando na porta 4000...${NC}"
 if ! nc -z localhost 4000 &>/dev/null; then
   echo -e "${YELLOW}Servidor não encontrado. Iniciando o servidor para os testes...${NC}"
 
-  # Inicia o servidor
+  # Inicia o servidor em segundo plano
   echo -e "${GREEN}Iniciando servidor na porta 4000...${NC}"
   NODE_ENV=test npm run dev > /tmp/server.log 2>&1 &
   SERVER_PID=$!
 
-  # Função para limpar o servidor após o fim do script
+  # Função para garantir que o servidor será encerrado ao sair do script
   cleanup() {
     echo -e "${YELLOW}Encerrando servidor (PID: $SERVER_PID)...${NC}"
     kill $SERVER_PID 2>/dev/null || true
@@ -72,20 +72,20 @@ if ! nc -z localhost 4000 &>/dev/null; then
     exit
   }
 
-  # Registra função de limpeza para ser chamada no fim do script
+  # Registra a função de limpeza para ser chamada quando o script terminar
   trap cleanup EXIT INT TERM
 
-  # Aguarda o servidor iniciar
+  # Espera o servidor iniciar completamente
   echo -e "${YELLOW}Aguardando servidor inicializar (até 30 segundos)...${NC}"
   for i in {1..30}; do
     if nc -z localhost 4000; then
       echo -e "${GREEN}Servidor está pronto!${NC}"
-      # Dá um tempo para estabilizar
-      sleep 5
+      # Dá mais um tempinho para garantir que está tudo carregado
+      sleep 2
       break
     fi
 
-    # Se o servidor não estiver ativo após 30 segundos, encerra com erro
+    # Se chegou na última tentativa e ainda não está pronto
     if [ $i -eq 30 ]; then
       echo -e "${RED}ERRO: Servidor não iniciou em tempo hábil. Verifique os logs em /tmp/server.log${NC}"
       exit 1
@@ -99,7 +99,7 @@ else
   echo -e "${GREEN}Servidor já está rodando na porta 4000.${NC}"
 fi
 
-# Função para executar os testes k6 com tratamento de erros
+# Função para executar um teste e exibir mensagem
 run_test() {
   local test_file=$1
   local description=$2
@@ -158,47 +158,36 @@ run_test() {
   if [ $result -ne 0 ]; then
     echo -e "${RED}ERRO: Teste falhou com código de saída $result.${NC}"
     return $result
-  elif [ $result -ne 0 ]; then
-    echo -e "${RED}ERRO: Teste falhou com código de saída $result.${NC}"
-    return $result
   else
     echo -e "\n${GREEN}Teste concluído com sucesso: ${description}${NC}\n"
     return 0
   fi
 }
 
-# Primeiro teste é a verificação de conectividade
+# Primeiro teste: verificar conectividade com o servidor
 run_test "src/tests/k6-connectivity-check.js" "Verificação de conectividade com o servidor" "30s"
-connectivity_result=$?
+connect_result=$?
 
-# Se o teste de conectividade for bem-sucedido, prossegue com outros testes
-if [ $connectivity_result -eq 0 ]; then
-  echo -e "${GREEN}Teste de conectividade bem-sucedido! Prosseguindo com outros testes...${NC}"
+# Se o teste de conectividade for bem-sucedido, continue com os outros testes
+if [ $connect_result -eq 0 ]; then
+  # Teste básico de carga
+  run_test "src/tests/k6-leaky-bucket-improved.js" "Teste de pico de carga (spike test)" "2m"
 
-  # Teste de carga básico com timeout maior
-  run_test "src/tests/k6-multi-user-test-timeout.js" "Teste com múltiplos usuários (timeout aumentado)" "2m"
-
-  # Perguntar se deseja continuar com testes mais intensivos
-  read -p "Deseja continuar com os testes mais intensivos? Estes testes podem levar mais tempo (y/n): " continue_choice
-  if [[ "$continue_choice" =~ ^[Yy]$ ]]; then
-    # Teste de pico de carga
-    run_test "src/tests/k6-leaky-bucket-improved.js" "Teste de pico de carga (spike test)" "2m"
-
-    # Verifica se existe o arquivo de teste de status de token
-    if [ -f "src/tests/k6-token-status-test.js" ]; then
-      # Teste de status de token
-      run_test "src/tests/k6-token-status-test.js" "Teste do endpoint de status de token" "1m"
-    fi
-
-    # Teste com múltiplos usuários (versão original)
-    run_test "src/tests/k6-multi-user-test.js" "Teste com múltiplos usuários (IPs diferentes)" "2m"
-
-    # Teste de recarga de tokens (o mais longo)
-    read -p "Deseja executar o teste de recarga de tokens? Este teste leva vários minutos (y/n): " refill_choice
-    if [[ "$refill_choice" =~ ^[Yy]$ ]]; then
-      run_test "src/tests/k6-token-refill-test.js" "Teste de recarga automática de tokens" "10m"
-    fi
+  # Teste de status de token
+  if [ -f "src/tests/k6-token-status-test.js" ]; then
+    run_test "src/tests/k6-token-status-test.js" "Teste do endpoint de status de token" "1m"
   fi
+
+  # Teste com múltiplos usuários
+  run_test "src/tests/k6-multi-user-test.js" "Teste com múltiplos usuários (IPs diferentes)" "2m"
+
+  # Teste de recarga de tokens
+  read -p "Deseja executar o teste de recarga de tokens? Este teste leva vários minutos (y/n): " choice
+  if [[ "$choice" =~ ^[Yy]$ ]]; then
+    run_test "src/tests/k6-token-refill-test.js" "Teste de recarga automática de tokens" "10m"
+  fi
+
+  echo -e "\n${BLUE}=== Todos os testes concluídos ===${NC}"
 else
   echo -e "${RED}O teste de conectividade falhou. Verificando problemas no servidor...${NC}"
   # Mostra as últimas linhas do log do servidor
@@ -208,8 +197,6 @@ else
   fi
   exit 1
 fi
-
-echo -e "\n${BLUE}=== Todos os testes concluídos ===${NC}"
 
 # Se iniciamos o servidor para os testes, mostra onde encontrar os logs
 if [ -n "$SERVER_PID" ]; then

@@ -9,7 +9,12 @@
     "build": "tsc",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "clean": "rimraf dist node_modules"
+    "clean": "rimraf dist node_modules",
+    "test:k6": "chmod +x ./run-k6-tests.sh && ./run-k6-tests.sh",
+    "test:k6:simple": "chmod +x ./run-simple-test.sh && ./run-simple-test.sh",
+    "test:k6:all": "chmod +x ./run-tests.sh && ./run-tests.sh",
+    "test:k6:basic": "k6 run src/tests/k6-basic-connection-test.js",
+    "test:all": "npm run test && npm run test:k6:basic && npm run test:k6"
   },
   "keywords": [],
   "author": "",
